@@ -109,7 +109,16 @@ if( ! defined $opts{'output'} ) {
 }
 my $output_class = "Log::Saftpresse::CountersOutput::".$opts{'output'};
 eval "require $output_class;";
-my $output = $output_class->new;
+if( $@ ) { die "error loading output: ".$@; }
+my $output = $output_class->new(
+	problems_first => $opts{'pf'},
+	deferral_detail => $opts{'deferralDetail'},
+	bounce_detail => $opts{'bounceDetail'},
+	reject_detail => $opts{'rejectDetail'},
+	smtp_detail => $opts{'smtpDetail'},
+	smtpd_warn_detail => $opts{'smtpdWarnDetail'},
+	quiet => $opts{'q'},
+);
 
 $analyzer->load_plugin('SyslogTimestamp');
 $analyzer->load_plugin('SyslogProgram');

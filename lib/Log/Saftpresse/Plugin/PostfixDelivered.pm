@@ -105,9 +105,9 @@ sub process_to {
 			}
 			$self->cnt->incr_one('bounced', $relay, $bounceReas);
 		}
-		$self->cnt->incr_one('deferred', 'total');
-		$self->cnt->incr_one('deferred', 'per_hr', $time->hour);
-		$self->cnt->incr_one('deferred', 'per_day', $time->ymd);
+		$self->cnt->incr_one('bounced', 'total');
+		$self->cnt->incr_one('bounced', 'per_hr', $time->hour);
+		$self->cnt->incr_one('bounced', 'per_day', $time->ymd);
 	}
 }
 

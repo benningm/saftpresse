@@ -4,13 +4,13 @@ use strict;
 use warnings;
 
 use Data::Dumper;
-use Log::Pflogsumm::Slurp;
+use Log::Saftpresse::Slurp;
 
-my $slurp = Log::Pflogsumm::Slurp->new;
+my $slurp = Log::Saftpresse::Slurp->new;
 $slurp->load_plugin('FileTail', path => '/var/log/mail.log');
-$slurp->load_plugin('FileTail', path => '/var/log/syslog');
-$slurp->load_plugin('FileTail', path => '/var/log/kern.log');
-#$slurp->load_plugin('Stdin');
+#$slurp->load_plugin('FileTail', path => '/var/log/syslog');
+#$slurp->load_plugin('FileTail', path => '/var/log/kern.log');
+$slurp->load_plugin('Stdin');
 
 for(;;) {
         if( $slurp->can_read(1) ) {
