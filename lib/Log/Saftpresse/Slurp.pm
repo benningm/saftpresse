@@ -86,13 +86,11 @@ sub read_events {
 	my $eof = 1;
 
 	foreach my $plugin ( @{$self->{'plugins'}} ) {
-		if( $plugin->eof ) {
-			next;
-		}
-		$eof = 0;
 		if( $plugin->can_read ) {
+			if( $plugin->eof ) { next; }
 			push( @events, $plugin->read_events );
 		}
+		$eof = 0;
 	}
 
 	if( $eof ) {

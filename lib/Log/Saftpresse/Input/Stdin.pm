@@ -26,7 +26,7 @@ sub io_handles {
 sub read_events {
 	my ( $self ) = @_;
 	my @events;
-	foreach my $line ( $self->{'stdin'}->getlines ) {
+	while( defined( my $line = $self->{'stdin'}->getline ) ) {
 		chomp( $line );
 		my $event = { message => $line };
 		push( @events, $event );
@@ -36,7 +36,8 @@ sub read_events {
 
 sub can_read {
 	my ( $self ) = @_;
-	return( $self->{'select'}->can_read(0) );
+	my @can_read = $self->{'select'}->can_read(0);
+	return( scalar @can_read );
 }
 
 sub eof {
