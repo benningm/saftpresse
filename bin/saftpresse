@@ -1,0 +1,13 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+use Log::Saftpresse::App;
+
+my $app = Log::Saftpresse::App->new;
+$app->init_with_options;
+$app->run;
+
+exit(0);
+

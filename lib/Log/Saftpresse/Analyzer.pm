@@ -56,6 +56,18 @@ sub load_plugin {
 	return;
 }
 
+sub load_config {
+	my ( $self, $config ) = @_;
+
+	$self->{'plugins'} = [];
+
+	foreach my $plugin ( keys %$config ) {
+		$self->load_plugin( $plugin, %{$config->{$plugin}} );
+	}
+
+	return;
+}
+
 sub process_message {
 	my ( $self, $msg ) = @_;
 	my $stash = {

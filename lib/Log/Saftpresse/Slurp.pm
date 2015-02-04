@@ -80,6 +80,18 @@ sub load_plugin {
 	return;
 }
 
+sub load_config {
+	my ( $self, $config ) = @_;
+
+	$self->{'plugins'} = [];
+
+	foreach my $plugin ( keys %$config ) {
+		$self->load_plugin( $plugin, %{$config->{$plugin}} );
+	}
+
+	return;
+}
+
 sub read_events {
 	my $self = shift;
 	my @events;
