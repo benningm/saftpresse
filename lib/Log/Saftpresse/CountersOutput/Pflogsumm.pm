@@ -29,7 +29,7 @@ sub output {
 	}
 
 	print_subsect_title( 'Per-Day Traffic Summary' );
-	$self->print_table_from_hashes( 'date', 15, 10,
+	$self->print_table_from_hashes( 'date', 'string', 15, 10,
 		[ 'recieved', $cnt->{'PostfixRecieved'}->get_node('per_day') ],
 		[ 'delivered', $cnt->{'PostfixDelivered'}->get_node('sent', 'per_day') ],
 		[ 'deffered', $cnt->{'PostfixDelivered'}->get_node('deferred', 'per_day'), ],
@@ -37,7 +37,7 @@ sub output {
 		[ 'rejected', $cnt->{'PostfixRejects'}->get_node('per_day') ],
 	);
 
-	$self->print_table_from_hashes( 'hour', 15, 10,
+	$self->print_table_from_hashes( 'hour', 'decimal', 15, 10,
 		[ 'recieved', $cnt->{'PostfixRecieved'}->get_node('per_hr') ],
 		[ 'delivered', $cnt->{'PostfixDelivered'}->get_node('sent', 'per_hr') ],
 		[ 'deffered', $cnt->{'PostfixDelivered'}->get_node('deferred', 'per_hr'), ],
@@ -79,14 +79,19 @@ sub output {
 }
 
 sub print_table_from_hashes {
-	my ( $self, $legend, $lw, $cw, @rows ) = @_;
+	my ( $self, $legend, $sort, $lw, $cw, @rows ) = @_;
 	my @headers = map { $_->[0] } @rows;
 	my @hashes = map { $_->[1] } @rows;
+	my @yaxis;
 
 	$self->print_table_header( $legend, $lw, $cw, @headers );
 	my @all_keys = map { keys %$_ } @hashes;
 	my %uniq = map { $_ => 1 } @all_keys;
-	my @yaxis = sort keys %uniq;
+	if( $sort eq 'decimal' ) {
+		@yaxis = sort { $a <=> $b } keys %uniq;
+	} else {
+		@yaxis = sort { $a cmp $b } keys %uniq;
+	}
 
 	foreach my $row ( @yaxis ) {
 		$self->print_table_row( $row, $lw, $cw,
