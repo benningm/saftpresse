@@ -49,9 +49,6 @@ sub run {
 	my $self = shift;
 	my $slurp = $self->{_slurp};
 
-	use Data::Dumper;
-	$log->debug( Dumper $self );
-
 	$log->debug('entering main loop');
 	for(;;) { # main loop
 		if( $slurp->can_read(1) ) {

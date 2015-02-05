@@ -262,12 +262,14 @@ sub print_tls_stats {
 	my $tls_cnt = $cnt->{'TlsStatistics'};
 	my $smtpd_cnt = $cnt->{'PostfixSmtpdStats'};
 	my $recieved_cnt = $cnt->{'PostfixRecieved'};
+	my $delivered_cnt = $cnt->{'PostfixDelivered'};
 	my $smtpdConnCnt;
 
 	if( defined $smtpd_cnt ) {
 		$smtpdConnCnt = $smtpd_cnt->get_value_or_zero('total');
 	}
 	my $msgs_rcvd = $recieved_cnt->get_value_or_zero('total');
+	my $msgs_sent = $delivered_cnt->get_value_or_zero('sent', 'total');
 
 	print_subsect_title("TLS Statistics");
 
@@ -278,7 +280,7 @@ sub print_tls_stats {
 			'smtpd', 'messages', 'total' ],
 		[ 'outgoing tls connections' => $smtpdConnCnt,
 			'smtp', 'connections', 'total' ],
-		[ 'outgoing tls messages' => 0,
+		[ 'outgoing tls messages' => $msgs_sent,
 			'smtp', 'messages', 'total' ],
 	);
 
