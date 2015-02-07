@@ -30,7 +30,7 @@ sub process {
 		if( $self->{'reject_detail'} != 0 ) {
 			$self->cnt->incr_one($rejSubTyp, $service, $rejReas, $rejRmdr);
 		}
-		$self->cnt->incr_one( $rejSubTyp );
+		$self->cnt->incr_one( 'total', $rejSubTyp );
 		$self->incr_per_time_one( $stash->{'time'} );
 	}
 
@@ -71,6 +71,7 @@ sub proc_smtpd_reject {
     # First: get everything following the "reject: ", etc. token
     # Was an IPv6 problem here
     ($rejTyp, $rejFrom, $rejRmdr) = $message =~ /^(\S+) from (\S+?): (.*)$/;
+    if( ! defined $rejTyp )  { return; }
 
     # Next: get the reject "reason"
     $rejReas = $rejRmdr;

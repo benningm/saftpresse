@@ -48,12 +48,40 @@ sub output {
 #	print_recip_domain_summary(\%recipDom, $opts{'h'});
 #	print_sending_domain_summary(\%sendgDom, $opts{'h'});
 #
-#	if( my $cnt = $analyzer->get_counters('PostfixSmtpdStats') ) {
-#	    print_per_day_smtpd( $cnt->get_node('per_day'), $dayCnt) if($dayCnt > 1);
-#	# TODO: restore output
-#	#    print_per_hour_smtpd( $cnt->get_node('per_hr'), $dayCnt);
-#	#    print_domain_smtpd_summary( $cnt->get_node('per_domain'), $opts{'h'});
-#	}
+	if( my $smtpd_stats = $cnt->{'PostfixSmtpdStats'} ) {
+    		print_subsect_title("Per-Day SMTPD Connection Summary");
+		$self->print_table_from_hashes( 'date', 'string', 15, 10,
+			[ 'connections', $smtpd_stats->get_node('per_day') ],
+			[ 'time conn.', $smtpd_stats->get_node('busy', 'per_day') ],
+			[ 'avg./conn.', $self->hash_calc_avg( 2,
+					$smtpd_stats->get_node('busy', 'per_day'),
+					$smtpd_stats->get_node('per_day'),
+				), ],
+			[ 'max. time', $smtpd_stats->get_node('busy', 'max_per_day'), ],
+		);
+
+    		print_subsect_title("Per-Hour SMTPD Connection Summary");
+		$self->print_table_from_hashes( 'hour', 'decimal', 15, 10,
+			[ 'connections', $smtpd_stats->get_node('per_hr') ],
+			[ 'time conn.', $smtpd_stats->get_node('busy', 'per_hr') ],
+			[ 'avg./conn.', $self->hash_calc_avg( 2,
+					$smtpd_stats->get_node('busy', 'per_hr'),
+					$smtpd_stats->get_node('per_hr'),
+				), ],
+			[ 'max. time', $smtpd_stats->get_node('busy', 'max_per_hr'), ],
+		);
+
+    		print_subsect_title("Per-Domain SMTPD Connection Summary");
+		$self->print_table_from_hashes( 'domain', 'string', 25, 10,
+			[ 'connections', $smtpd_stats->get_node('per_domain') ],
+			[ 'time conn.', $smtpd_stats->get_node('busy', 'per_domain') ],
+			[ 'avg./conn.', $self->hash_calc_avg( 2,
+					$smtpd_stats->get_node('busy', 'per_domain'),
+					$smtpd_stats->get_node('per_domain'),
+				), ],
+			[ 'max. time', $smtpd_stats->get_node('busy', 'max_per_domain'), ],
+		);
+	}
 #
 #	print_user_data(\%sendgUser, "Senders by message count", $msgCntI, $opts{'u'}, $opts{'q'});
 #	print_user_data(\%recipUser, "Recipients by message count", $msgCntI, $opts{'u'}, $opts{'q'});
@@ -76,6 +104,22 @@ sub output {
 	}
 
 	return;
+}
+
+sub hash_calc_avg {
+	my ( $self, $precision, $total, $count ) = @_;
+	my %avg;
+	my %uniq = map { $_ => 1 } ( keys %$total, keys %$count );
+	my @keys = keys %uniq;
+	foreach my $key ( @keys ) {
+		my $value = 0;
+		if( defined $total->{$key} && $total->{$key} > 0
+				&& defined $count->{$key} && $count->{$key} > 0 ) { 
+			$value = $total->{$key} / $count->{$key};
+		}
+		$avg{$key} = sprintf('%.'.$precision.'f', $value);
+	}
+	return \%avg;
 }
 
 sub print_table_from_hashes {
@@ -441,112 +485,6 @@ sub print_user_data {
 	last if --$cnt == 0;
     }
 }
-
-
-# print "per-hour" smtpd connection summary
-# (done in a subroutine only to keep main-line code clean)
-sub print_per_hour_smtpd {
-    my ($smtpdPerHr, $dayCnt) = @_;
-    my @smtpdPerHr = @$smtpdPerHr; # global @, local $, *ugh*
-    my ($hour, $value);
-    if($dayCnt > 1) {
-	print_subsect_title("Per-Hour SMTPD Connection Daily Average");
-
-	print <<End_Of_Per_Hour_Smtp_Average;
-    hour        connections    time conn.
-    -------------------------------------
-End_Of_Per_Hour_Smtp_Average
-    } else {
-	print_subsect_title("Per-Hour SMTPD Connection Summary");
-
-	print <<End_Of_Per_Hour_Smtp;
-    hour        connections    time conn.    avg./conn.   max. time
-    --------------------------------------------------------------------
-End_Of_Per_Hour_Smtp
-    }
-
-    for($hour = 0; $hour < 24; ++$hour) {
-	$smtpdPerHr[$hour]->[0] || next;
-	my $avg = int($smtpdPerHr[$hour]->[0]?
-	    ($smtpdPerHr[$hour]->[1]/$smtpdPerHr[$hour]->[0]) + .5 : 0);
-	if($dayCnt > 1) {
-	    $smtpdPerHr[$hour]->[0] /= $dayCnt;
-	    $smtpdPerHr[$hour]->[1] /= $dayCnt;
-	    $smtpdPerHr[$hour]->[0] += .5;
-	    $smtpdPerHr[$hour]->[1] += .5;
-	}
-	my($sec, $min, $hr) = get_smh($smtpdPerHr[$hour]->[1]);
-
-#	if($isoDateTime) {
-	    printf "    %02d:00-%02d:00", $hour, $hour + 1;
-#	} else {
-#	    printf "    %02d00-%02d00  ", $hour, $hour + 1;
-#	}
-	printf "   %6d%s       %2d:%02d:%02d",
-	    adj_int_units($smtpdPerHr[$hour]->[0]),
-	    $hr, $min, $sec;
-	if($dayCnt < 2) {
-	    printf "      %6ds      %6ds",
-		$avg,
-		$smtpdPerHr[$hour]->[2];
-	}
-	print "\n";
-    }
-}
-
-# print "per-day" smtpd connection summary
-# (done in a subroutine only to keep main-line code clean)
-sub print_per_day_smtpd {
-    my ($smtpdPerDay, $dayCnt) = @_;
-
-    print_subsect_title("Per-Day SMTPD Connection Summary");
-
-    # TODO: restore full stats
-
-    print <<End_Of_Per_Day_Smtp;
-    date        connections    time conn.    avg./conn.   max. time
-    --------------------------------------------------------------------
-End_Of_Per_Day_Smtp
-
-    foreach (sort { $a cmp $b } keys(%$smtpdPerDay)) {
-	my $day = $_;
-
-	printf "    %s       %6d\n",
-	    $day,
-	    $smtpdPerDay->{$day};
-    }
-}
-
-# print "per-domain-smtpd" connection summary
-# (done in a subroutine only to keep main-line code clean)
-#sub print_domain_smtpd_summary {
-#    use vars '$hashRef';
-#    local($hashRef) = $_[0];
-#    my($cnt) = $_[1];
-#    return if($cnt == 0);
-#    my $topCnt = $cnt > 0? "(top $cnt)" : "";
-#    my $avgDly;
-#
-#    print_subsect_title("Host/Domain Summary: SMTPD Connections $topCnt");
-#
-#    print <<End_Of_Domain_Smtp_Heading;
-# connections  time conn.  avg./conn.  max. time  host/domain
-# -----------  ----------  ----------  ---------  -----------
-#End_Of_Domain_Smtp_Heading
-#
-#    foreach (reverse sort by_count_then_size keys(%$hashRef)) {
-#	my $avg = (${$hashRef->{$_}}[1]/${$hashRef->{$_}}[0]) + .5;
-#	my ($sec, $min, $hr) = get_smh(${$hashRef->{$_}}[1]);
-#
-#	printf "  %6d%s      %2d:%02d:%02d     %6ds    %6ds   %s\n",
-#	    adj_int_units(${$hashRef->{$_}}[0]),
-#	    $hr, $min, $sec,
-#	    $avg,
-#	    ${$hashRef->{$_}}[2],
-#	    $_;
-#	last if --$cnt == 0;
-#    }
-#}
 
 # print hash contents sorted by numeric values in descending
 # order (i.e.: highest first)

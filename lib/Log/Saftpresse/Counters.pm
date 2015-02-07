@@ -3,6 +3,8 @@ package Log::Saftpresse::Counters;
 use strict;
 use warnings;
 
+use Carp;
+
 # ABSTRACT: objects to hold and manipulate counters
 # VERSION
 
@@ -33,7 +35,7 @@ sub incr {
 		if( ! defined $cur_level->{ $cur_key }) {
 			$cur_level->{ $cur_key } = {};
 		} elsif( ref($cur_level->{$cur_key}) ne 'HASH' ) {
-			die('counter sub element is not a hash!');
+			confess('counter sub element is not a hash!');
 		}
 		$cur_level = $cur_level->{ $cur_key };
 	}
