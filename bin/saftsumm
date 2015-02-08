@@ -118,6 +118,7 @@ my $output = $output_class->new(
 	smtp_detail => $opts{'smtpDetail'},
 	smtpd_warn_detail => $opts{'smtpdWarnDetail'},
 	quiet => $opts{'q'},
+	top_domains_cnt => $opts{'h'},
 );
 
 $analyzer->load_plugin('SyslogTimestamp');

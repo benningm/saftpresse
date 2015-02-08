@@ -47,7 +47,7 @@ sub output {
 
 #	print_recip_domain_summary(\%recipDom, $opts{'h'});
 #	print_sending_domain_summary(\%sendgDom, $opts{'h'});
-#
+
 	if( my $smtpd_stats = $cnt->{'PostfixSmtpdStats'} ) {
     		print_subsect_title("Per-Day SMTPD Connection Summary");
 		$self->print_table_from_hashes( 'date', 'string', 15, 10,
@@ -72,7 +72,7 @@ sub output {
 		);
 
     		print_subsect_title("Per-Domain SMTPD Connection Summary");
-		$self->print_table_from_hashes( 'domain', 'string', 25, 10,
+		$self->print_table_from_hashes( 'domain', [ 'connections', 'decimal', 20 ] , 25, 10,
 			[ 'connections', $smtpd_stats->get_node('per_domain') ],
 			[ 'time conn.', $smtpd_stats->get_node('busy', 'per_domain') ],
 			[ 'avg./conn.', $self->hash_calc_avg( 2,
@@ -129,12 +129,26 @@ sub print_table_from_hashes {
 	my @yaxis;
 
 	$self->print_table_header( $legend, $lw, $cw, @headers );
-	my @all_keys = map { keys %$_ } @hashes;
-	my %uniq = map { $_ => 1 } @all_keys;
-	if( $sort eq 'decimal' ) {
-		@yaxis = sort { $a <=> $b } keys %uniq;
-	} else {
-		@yaxis = sort { $a cmp $b } keys %uniq;
+
+	if( ref($sort) eq 'ARRAY' ) { # sort by a column value
+		my ( $sortby, $alg, $limit ) = @$sort;
+		my ( $row ) = grep { $_->[0] eq $sortby } @rows;
+		$row = $row->[1];
+		if( ! defined $row ) { die('cant find row '.$sortby.' for sorting'); }
+		if( $alg eq 'decimal' ) {
+			@yaxis = sort { $row->{$b} <=> $row->{$a} } keys %$row;
+		} else { # string
+			@yaxis = sort { $row->{$b} cmp $row->{$a} } keys %$row;
+		}
+		if( $limit > 0 && scalar @yaxis > $limit ) { @yaxis = @yaxis[0 .. ($limit-1) ] };
+	} else { # simple sort by key
+		my @all_keys = map { keys %$_ } @hashes;
+		my %uniq = map { $_ => 1 } @all_keys;
+		if( $sort eq 'decimal' ) {
+			@yaxis = sort { $a <=> $b } keys %uniq;
+		} else { # string
+			@yaxis = sort { $a cmp $b } keys %uniq;
+		}
 	}
 
 	foreach my $row ( @yaxis ) {
