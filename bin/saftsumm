@@ -176,8 +176,6 @@ for(;;) {
 		}
 		foreach my $e ( @$events ) {
 			$analyzer->process_event($e);
-			#use Data::Dumper;
-			#print Dumper( $e );
 		}
 	}
 }

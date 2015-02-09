@@ -28,74 +28,30 @@ sub output {
 		$self->print_problems_reports( $cnt );
 	}
 
-	print_subsect_title( 'Per-Day Traffic Summary' );
-	$self->print_table_from_hashes( 'date', 'string', 15, 10,
-		[ 'recieved', $cnt->{'PostfixRecieved'}->get_node('per_day') ],
-		[ 'delivered', $cnt->{'PostfixDelivered'}->get_node('sent', 'per_day') ],
-		[ 'deffered', $cnt->{'PostfixDelivered'}->get_node('deferred', 'per_day'), ],
-		[ 'bounced', $cnt->{'PostfixDelivered'}->get_node('bounced', 'per_day'), ],
-		[ 'rejected', $cnt->{'PostfixRejects'}->get_node('per_day') ],
-	);
+	$self->print_traffic_summaries( $cnt );
 
-	$self->print_table_from_hashes( 'hour', 'decimal', 15, 10,
-		[ 'recieved', $cnt->{'PostfixRecieved'}->get_node('per_hr') ],
-		[ 'delivered', $cnt->{'PostfixDelivered'}->get_node('sent', 'per_hr') ],
-		[ 'deffered', $cnt->{'PostfixDelivered'}->get_node('deferred', 'per_hr'), ],
-		[ 'bounced', $cnt->{'PostfixDelivered'}->get_node('bounced', 'per_hr'), ],
-		[ 'rejected', $cnt->{'PostfixRejects'}->get_node('per_hr') ],
-	);
-
-#	print_recip_domain_summary(\%recipDom, $opts{'h'});
-#	print_sending_domain_summary(\%sendgDom, $opts{'h'});
-
-	if( my $smtpd_stats = $cnt->{'PostfixSmtpdStats'} ) {
-    		print_subsect_title("Per-Day SMTPD Connection Summary");
-		$self->print_table_from_hashes( 'date', 'string', 15, 10,
-			[ 'connections', $smtpd_stats->get_node('per_day') ],
-			[ 'time conn.', $smtpd_stats->get_node('busy', 'per_day') ],
-			[ 'avg./conn.', $self->hash_calc_avg( 2,
-					$smtpd_stats->get_node('busy', 'per_day'),
-					$smtpd_stats->get_node('per_day'),
-				), ],
-			[ 'max. time', $smtpd_stats->get_node('busy', 'max_per_day'), ],
-		);
-
-    		print_subsect_title("Per-Hour SMTPD Connection Summary");
-		$self->print_table_from_hashes( 'hour', 'decimal', 15, 10,
-			[ 'connections', $smtpd_stats->get_node('per_hr') ],
-			[ 'time conn.', $smtpd_stats->get_node('busy', 'per_hr') ],
-			[ 'avg./conn.', $self->hash_calc_avg( 2,
-					$smtpd_stats->get_node('busy', 'per_hr'),
-					$smtpd_stats->get_node('per_hr'),
-				), ],
-			[ 'max. time', $smtpd_stats->get_node('busy', 'max_per_hr'), ],
-		);
-
-    		print_subsect_title("Per-Domain SMTPD Connection Summary");
-		$self->print_table_from_hashes( 'domain', [ 'connections', 'decimal', 20 ] , 25, 10,
-			[ 'connections', $smtpd_stats->get_node('per_domain') ],
-			[ 'time conn.', $smtpd_stats->get_node('busy', 'per_domain') ],
-			[ 'avg./conn.', $self->hash_calc_avg( 2,
-					$smtpd_stats->get_node('busy', 'per_domain'),
-					$smtpd_stats->get_node('per_domain'),
-				), ],
-			[ 'max. time', $smtpd_stats->get_node('busy', 'max_per_domain'), ],
-		);
+	if( defined $self->{'top_domains_cnt'}
+			&& $self->{'top_domains_cnt'} > 0 ) {
+		$self->print_domain_summaries( $cnt );
 	}
-#
+
+	if( defined $cnt->{'PostfixSmtpdStats'} ) {
+		$self->print_smtpd_summaries( $cnt );
+	}
+
 #	print_user_data(\%sendgUser, "Senders by message count", $msgCntI, $opts{'u'}, $opts{'q'});
 #	print_user_data(\%recipUser, "Recipients by message count", $msgCntI, $opts{'u'}, $opts{'q'});
 #	print_user_data(\%sendgUser, "Senders by message size", $msgSizeI, $opts{'u'}, $opts{'q'});
 #	print_user_data(\%recipUser, "Recipients by message size", $msgSizeI, $opts{'u'}, $opts{'q'});
-#
+
 #	print_hash_by_key(\%noMsgSize, "Messages with no size data", 0, 1);
-#
+
 	if( ! defined $self->{'problems_first'} ) {
 		$self->print_problems_reports( $cnt );
 	}
 
 #	print_detailed_msg_data(\%msgDetail, "Message detail", $opts{'q'}) if($opts{'e'});
-#
+
 	if( defined $cnt->{'TlsStatistics'} ) {
 		$self->print_tls_stats( $cnt );
 	}
@@ -112,12 +68,19 @@ sub hash_calc_avg {
 	my %uniq = map { $_ => 1 } ( keys %$total, keys %$count );
 	my @keys = keys %uniq;
 	foreach my $key ( @keys ) {
-		my $value = 0;
+		my $value;
 		if( defined $total->{$key} && $total->{$key} > 0
 				&& defined $count->{$key} && $count->{$key} > 0 ) { 
 			$value = $total->{$key} / $count->{$key};
 		}
-		$avg{$key} = sprintf('%.'.$precision.'f', $value);
+		if( defined $total->{$key} && $total->{$key} eq 0 ) {
+			$value = 0;
+		}
+		if( defined $value ) {
+			$avg{$key} = sprintf('%.'.$precision.'f', $value);
+		} else {
+			$avg{$key} = undef;
+		}
 	}
 	return \%avg;
 }
@@ -180,6 +143,78 @@ sub print_table_header {
 
 	my $width = $lw + (( $cw + 1 ) * scalar @headers);
 	print( ("-" x $width)."\n");
+
+	return;
+}
+
+sub print_domain_summaries {
+	my ( $self, $cnt ) = @_;
+	my $top_cnt = defined $self->{'top_domains_cnt'} ?
+		$self->{'top_domains_cnt'} : 20;
+	my $delivered = $cnt->{'PostfixDelivered'};
+
+	foreach my $table ( 'recieved', 'sent' ) {
+		print_subsect_title("Host/Domain Summary: Message Delivery (top $top_cnt $table)");
+		$self->print_table_from_hashes( 'host/domain',
+			[ 'sent cnt', 'decimal', $top_cnt ], 25, 10,
+			[ 'sent cnt', $delivered->get_node($table, 'by_domain') ],
+			[ 'bytes', $delivered->get_node($table, 'size', 'by_domain') ],
+			# TODO
+			#[ 'defers', $delivered->get_node('busy', 'per_day') ],
+			[ 'avg delay', $self->hash_calc_avg( 2,
+					$delivered->get_node($table, 'delay', 'by_domain'),
+					$delivered->get_node($table, 'by_domain'),
+				), ],
+			[ 'max. delay', $delivered->get_node($table, 'max_delay', 'by_domain'), ],
+		);
+	}
+
+	return;
+}
+
+sub print_smtpd_summaries {
+	my ( $self, $cnt ) = @_;
+	my $smtpd_stats = $cnt->{'PostfixSmtpdStats'};
+	my $params = {
+		'day' => [ 'Per-Day', 'per_day', 'string', 15 ],
+		'hour' => [ 'Per-Hour', 'per_hr', 'decimal', 15 ],
+		'domain' => [ 'Per-Hour', 'per_domain', [ 'connections', 'decimal', 20 ], 25 ],
+	};
+
+	foreach my $table ( 'day', 'hour', 'domain' ) {
+		my ( $title, $key, $sort, $len ) = @{$params->{ $table }};
+		print_subsect_title("$title SMTPD Connection Summary");
+		$self->print_table_from_hashes( $table, $sort, $len, 10,
+			[ 'connections', $smtpd_stats->get_node($key) ],
+			[ 'time conn.', $smtpd_stats->get_node('busy', $key) ],
+			[ 'avg./conn.', $self->hash_calc_avg( 2,
+					$smtpd_stats->get_node('busy', $key),
+					$smtpd_stats->get_node($key),
+				), ],
+			[ 'max. time', $smtpd_stats->get_node('busy', 'max_'.$key ), ],
+		);
+	}
+	return;
+}
+
+sub print_traffic_summaries {
+	my ( $self, $cnt ) = @_;
+	my $params = {
+		'day' => [ 'Per-Day', 'per_day', 'string' ],
+		'hour' => [ 'Per-Hour', 'per_hr', 'decimal' ],
+	};
+
+	foreach my $table ('day', 'hour') {
+		my ( $title, $key, $sort ) = @{$params->{ $table }};
+		print_subsect_title( "$title Traffic Summary" );
+		$self->print_table_from_hashes( $table, $sort, 15, 10,
+			[ 'recieved', $cnt->{'PostfixRecieved'}->get_node($key) ],
+			[ 'delivered', $cnt->{'PostfixDelivered'}->get_node('sent', $key) ],
+			[ 'deffered', $cnt->{'PostfixDelivered'}->get_node('deferred', $key), ],
+			[ 'bounced', $cnt->{'PostfixDelivered'}->get_node('bounced', $key), ],
+			[ 'rejected', $cnt->{'PostfixRejects'}->get_node($key) ],
+		);
+	}
 
 	return;
 }
@@ -414,67 +449,6 @@ sub hash_key_add_percent {
 	};
 	return( $out );
 }
-
-# print "per-recipient-domain" traffic summary
-# (done in a subroutine only to keep main-line code clean)
-#sub print_recip_domain_summary {
-#    use vars '$hashRef';
-#    local($hashRef) = $_[0];
-#    my($cnt) = $_[1];
-#    return if($cnt == 0);
-#    my $topCnt = $cnt > 0? "(top $cnt)" : "";
-#    my $avgDly;
-#
-#    print_subsect_title("Host/Domain Summary: Message Delivery $topCnt");
-#
-#    print <<End_Of_Recip_Domain_Heading;
-# sent cnt  bytes   defers   avg dly max dly host/domain
-# -------- -------  -------  ------- ------- -----------
-#End_Of_Recip_Domain_Heading
-#
-#    foreach (reverse sort by_count_then_size keys(%$hashRef)) {
-#	# there are only delay values if anything was sent
-#	if(${$hashRef->{$_}}[$msgCntI]) {
-#	    $avgDly = (${$hashRef->{$_}}[$msgDlyAvgI] /
-#		       ${$hashRef->{$_}}[$msgCntI]);
-#	} else {
-#	    $avgDly = 0;
-#	}
-#	printf " %6d%s  %6d%s  %6d%s  %5.1f %s  %5.1f %s  %s\n",
-#	    adj_int_units(${$hashRef->{$_}}[$msgCntI]),
-#	    adj_int_units(${$hashRef->{$_}}[$msgSizeI]),
-#	    adj_int_units(${$hashRef->{$_}}[$msgDfrsI]),
-#	    adj_time_units($avgDly),
-#	    adj_time_units(${$hashRef->{$_}}[$msgDlyMaxI]),
-#	    $_;
-#	last if --$cnt == 0;
-#    }
-#}
-
-# print "per-sender-domain" traffic summary
-# (done in a subroutine only to keep main-line code clean)
-#sub print_sending_domain_summary {
-#    use vars '$hashRef';
-#    local($hashRef) = $_[0];
-#    my($cnt) = $_[1];
-#    return if($cnt == 0);
-#    my $topCnt = $cnt > 0? "(top $cnt)" : "";
-#
-#    print_subsect_title("Host/Domain Summary: Messages Received $topCnt");
-#
-#    print <<End_Of_Sender_Domain_Heading;
-# msg cnt   bytes   host/domain
-# -------- -------  -----------
-#End_Of_Sender_Domain_Heading
-#
-#    foreach (reverse sort by_count_then_size keys(%$hashRef)) {
-#	printf " %6d%s  %6d%s  %s\n",
-#	    adj_int_units(${$hashRef->{$_}}[$msgCntI]),
-#	    adj_int_units(${$hashRef->{$_}}[$msgSizeI]),
-#	    $_;
-#	last if --$cnt == 0;
-#    }
-#}
 
 # print "per-user" data sorted in descending order
 # order (i.e.: highest first)
