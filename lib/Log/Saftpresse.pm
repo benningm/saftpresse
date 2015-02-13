@@ -3,6 +3,9 @@ package Log::Saftpresse;
 use strict;
 use warnings;
 
+# ABSTRACT: a modular logfile analyzer
+# VERSION
+
 use Log::Saftpresse::Analyzer;
 use Log::Saftpresse::Slurp;
 use Log::Saftpresse::Log4perl;

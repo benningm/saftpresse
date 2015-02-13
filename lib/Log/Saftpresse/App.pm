@@ -3,6 +3,9 @@ package Log::Saftpresse::App;
 use strict;
 use warnings;
 
+# ABSTRACT: commandline interface extension for Log::Saftpresse
+# VERSION
+
 use base 'Log::Saftpresse';
 
 use Getopt::Long;

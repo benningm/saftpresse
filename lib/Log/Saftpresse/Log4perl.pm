@@ -3,6 +3,9 @@ package Log::Saftpresse::Log4perl;
 use strict;
 use warnings;
 
+# ABSTRACT: logging for Log::Saftpresse
+# VERSION
+
 use Exporter;
 use Log::Log4perl qw(:levels);
 

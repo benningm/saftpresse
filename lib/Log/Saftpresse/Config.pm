@@ -3,6 +3,9 @@ package Log::Saftpresse::Config;
 use strict;
 use warnings;
 
+# ABSTRACT: configuration option parser for Log::Saftpresse
+# VERSION
+
 use Tie::IxHash;
 use Config::General qw(ParseConfig);
 

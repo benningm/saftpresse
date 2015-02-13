@@ -3,6 +3,10 @@
 use strict;
 use warnings;
 
+# PODNAME: saftpresse
+# ABSTRACT: a modular logfile analyzer
+# VERSION
+
 use Log::Saftpresse::App;
 
 my $app = Log::Saftpresse::App->new;
