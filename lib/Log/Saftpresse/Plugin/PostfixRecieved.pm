@@ -11,10 +11,11 @@ use base 'Log::Saftpresse::Plugin';
 use Log::Saftpresse::Utils qw( postfix_remote );
 
 sub process {
-	my ( $self, $stash ) = @_;
+	my ( $self, $stash, $notes ) = @_;
 	if( $stash->{'program'} !~ /^postfix/ ) { return; }
 	my $service = $stash->{'service'};
 	my $message = $stash->{'message'};
+	my $qid = $stash->{'queue_id'};
 
 	if( $service eq 'smtpd' &&
 			$message =~ /client=(.+?)(,|$)/ ) {
@@ -23,10 +24,12 @@ sub process {
 		$stash->{'client_ip'} = $addr;
 		$self->cnt->incr_one('total');
 		$self->incr_per_time_one( $stash->{'time'} );
+		$notes->set('client-'.$qid => $host);
 	} elsif( $service eq 'pickup' &&
 			$message =~ /(sender|uid)=/ ) {
 		$self->cnt->incr_one('total');
 		$self->incr_per_time_one( $stash->{'time'} );
+		$notes->set('client-'.$qid => 'pickup');
 	}
 
 	return;

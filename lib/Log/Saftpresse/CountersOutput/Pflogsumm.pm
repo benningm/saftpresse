@@ -31,7 +31,7 @@ sub output {
 	$self->print_traffic_summaries( $cnt );
 
 	if( defined $self->{'top_domains_cnt'}
-			&& $self->{'top_domains_cnt'} > 0 ) {
+			&& $self->{'top_domains_cnt'} != 0 ) {
 		$self->print_domain_summaries( $cnt );
 	}
 
@@ -39,10 +39,7 @@ sub output {
 		$self->print_smtpd_summaries( $cnt );
 	}
 
-#	print_user_data(\%sendgUser, "Senders by message count", $msgCntI, $opts{'u'}, $opts{'q'});
-#	print_user_data(\%recipUser, "Recipients by message count", $msgCntI, $opts{'u'}, $opts{'q'});
-#	print_user_data(\%sendgUser, "Senders by message size", $msgSizeI, $opts{'u'}, $opts{'q'});
-#	print_user_data(\%recipUser, "Recipients by message size", $msgSizeI, $opts{'u'}, $opts{'q'});
+	$self->print_user_summaries( $cnt );
 
 #	print_hash_by_key(\%noMsgSize, "Messages with no size data", 0, 1);
 
@@ -58,6 +55,30 @@ sub output {
 	if( defined $cnt->{'PostfixGeoStats'} ) {
 		$self->print_geo_stats( $cnt->{'PostfixGeoStats'} );
 	}
+
+	return;
+}
+
+sub print_user_summaries {
+	my ( $self, $cnt ) = @_;
+	my $delivered = $cnt->{'PostfixDelivered'};
+	my $quiet = $self->{'quiet'};
+
+	$self->print_hash_by_cnt_vals(
+		$delivered->get_node('recieved', 'by_sender'),
+		"Senders by message count", 0, $quiet );
+
+	$self->print_hash_by_cnt_vals(
+		$delivered->get_node('sent', 'by_rcpt'),
+		"Recipients by message count", 0, $quiet );
+
+	$self->print_hash_by_cnt_vals(
+		$delivered->get_node('recieved', 'size', 'by_sender'),
+		"Senders by message size", 0, $quiet );
+
+	$self->print_hash_by_cnt_vals(
+		$delivered->get_node('sent', 'size', 'by_rcpt'),
+		"Recipients by message size", 0, $quiet );
 
 	return;
 }
@@ -149,23 +170,26 @@ sub print_table_header {
 
 sub print_domain_summaries {
 	my ( $self, $cnt ) = @_;
-	my $top_cnt = defined $self->{'top_domains_cnt'} ?
+	my $top_cnt = $self->{'top_domains_cnt'};
+	$top_cnt = defined $top_cnt && $top_cnt >= 0 ?
 		$self->{'top_domains_cnt'} : 20;
 	my $delivered = $cnt->{'PostfixDelivered'};
 
-	foreach my $table ( 'recieved', 'sent' ) {
+	foreach my $table ( 'sent', 'recieved' ) {
 		print_subsect_title("Host/Domain Summary: Message Delivery (top $top_cnt $table)");
 		$self->print_table_from_hashes( 'host/domain',
 			[ 'sent cnt', 'decimal', $top_cnt ], 25, 10,
 			[ 'sent cnt', $delivered->get_node($table, 'by_domain') ],
 			[ 'bytes', $delivered->get_node($table, 'size', 'by_domain') ],
-			# TODO
-			#[ 'defers', $delivered->get_node('busy', 'per_day') ],
-			[ 'avg delay', $self->hash_calc_avg( 2,
-					$delivered->get_node($table, 'delay', 'by_domain'),
-					$delivered->get_node($table, 'by_domain'),
-				), ],
-			[ 'max. delay', $delivered->get_node($table, 'max_delay', 'by_domain'), ],
+			$table eq 'sent' ? (
+				# TODO
+				#[ 'defers', $delivered->get_node('busy', 'per_day') ],
+				[ 'avg delay', $self->hash_calc_avg( 2,
+						$delivered->get_node($table, 'delay', 'by_domain'),
+						$delivered->get_node($table, 'by_domain'),
+					), ],
+				[ 'max. delay', $delivered->get_node($table, 'max_delay', 'by_domain'), ],
+			) : (),
 		);
 	}
 
@@ -240,10 +264,10 @@ sub print_totals {
 	my $sizeRcvd = $delivered_cnt->get_value_or_zero('recieved', 'size', 'total');
 	my $sizeDlvrd = $delivered_cnt->get_value_or_zero('sent', 'size', 'total');
 
-	my $sendgUserCnt = $delivered_cnt->get_key_count('sent', 'by_rcpt');
-	my $sendgDomCnt = $delivered_cnt->get_key_count('sent', 'by_domain'); 
-	my $recipUserCnt =$delivered_cnt->get_key_count('recieved', 'by_sender');
-	my $recipDomCnt = $delivered_cnt->get_key_count('recieved', 'by_domain');
+	my $sendgUserCnt = $delivered_cnt->get_key_count('recieved', 'by_sender');
+	my $sendgDomCnt = $delivered_cnt->get_key_count('recieved', 'by_domain'); 
+	my $recipUserCnt =$delivered_cnt->get_key_count('sent', 'by_rcpt');
+	my $recipDomCnt = $delivered_cnt->get_key_count('sent', 'by_domain');
 
 	# Calculate percentage of messages rejected and discarded
 	my $msgsRjctdPct = 0;
@@ -310,21 +334,18 @@ sub print_problems_reports {
 	if($self->{'deferral_detail'} != 0) {
 		$self->print_nested_hash( $delivered_cnt->get_node('deferred'),
 			"message deferral detail",
-			$self->{'deferral_detail'},
-			$self->{'quiet'} );
+			$self->{'deferral_detail'} );
 	}
 	if($self->{'bounce_detail'} != 0) {
 		$self->print_nested_hash( $delivered_cnt->get_node('bounced'),
 			"message bounce detail (by relay)",
-			$self->{'bounce_detail'},
-			$self->{'quiet'} );
+			$self->{'bounce_detail'} );
 	}
 	if($self->{'reject_detail'} != 0) {
 		foreach my $key ( 'reject', 'warning', 'hold', 'discard') {
 			$self->print_nested_hash($reject_cnt->get_node($key),
 				"message $key detail",
-				$self->{'reject_detail'},
-				$self->{'quite'});
+				$self->{'reject_detail'} );
 		}
 	}
 
@@ -332,26 +353,21 @@ sub print_problems_reports {
 		my $messages = $smtp_cnt->get_node('messages');
 		if( defined $messages ) {
 			$self->print_nested_hash($messages, "smtp delivery failures",
-				$self->{'smtp_detail'},
-				$self->{'quite'} );
+				$self->{'smtp_detail'} );
 		}
 	}
 	if( my $msg_cnt =  $cnt->{'PostfixMessages'} ) {
 		if($self->{'smtpd_warn_detail'} != 0) {
 			$self->print_nested_hash($msg_cnt->get_node('warning'),
 				"Warnings",
-				$self->{'smtpd_warn_detail'},
-				$self->{'quite'});
+				$self->{'smtpd_warn_detail'} );
 		}
 		$self->print_nested_hash($msg_cnt->get_node('fatal'),
-			"Fatal Errors", 0,
-			$self->{'quite'});
+			"Fatal Errors", 0 );
 		$self->print_nested_hash($msg_cnt->get_node('panic'),
-			"Panics", 0,
-			$self->{'quite'});
+			"Panics", 0 );
 		$self->print_hash_by_cnt_vals($msg_cnt->get_node('master'),
-			"Master daemon messages", 0,
-			$self->{'quite'});
+			"Master daemon messages", 0 );
 	}
 }
 
@@ -450,30 +466,6 @@ sub hash_key_add_percent {
 	return( $out );
 }
 
-# print "per-user" data sorted in descending order
-# order (i.e.: highest first)
-sub print_user_data {
-    my($hashRef, $title, $index, $cnt, $quiet) = @_;
-    my $dottedLine;
-    return if($cnt == 0);
-    $title = sprintf "%s%s", $cnt > 0? "top $cnt " : "", $title;
-    unless(%$hashRef) {
-	return if($quiet);
-	$dottedLine = ": none";
-    } else {
-	$dottedLine = "\n" . "-" x length($title);
-    }
-    printf "\n$title$dottedLine\n";
-    foreach (map { $_->[0] }
-	     sort { $b->[1] <=> $a->[1] || $a->[2] cmp $b->[2] }
-	     map { [ $_, $hashRef->{$_}[$index], normalize_host($_) ] }
-	     (keys(%$hashRef)))
-    {
-	printf " %6d%s  %s\n", adj_int_units(${$hashRef->{$_}}[$index]), $_;
-	last if --$cnt == 0;
-    }
-}
-
 # print hash contents sorted by numeric values in descending
 # order (i.e.: highest first)
 sub print_hash_by_cnt_vals {
@@ -512,7 +504,8 @@ sub print_hash_by_key {
 
 # print "nested" hashes
 sub print_nested_hash {
-    my( $self, $hashRef, $title, $cnt, $quiet) = @_;
+    my( $self, $hashRef, $title, $cnt ) = @_;
+    my $quiet = $self->{'quiet'};
     my $dottedLine;
     if( ! defined $hashRef ) { return; }
     unless(%$hashRef) {
@@ -666,24 +659,6 @@ sub by_domain_then_user {
     }
     return 0;
 }
-
-# Subroutine used by host/domain reports to sort by count, then size.
-# We "fix" un-initialized values here as well.  Very ugly and un-
-# structured to do this here - but it's either that or the callers
-# must run through the hashes twice :-(.
-#sub by_count_then_size {
-#    ${$hashRef->{$a}}[$msgCntI] = 0 unless(${$hashRef->{$a}}[$msgCntI]);
-#    ${$hashRef->{$b}}[$msgCntI] = 0 unless(${$hashRef->{$b}}[$msgCntI]);
-#    if(${$hashRef->{$a}}[$msgCntI] == ${$hashRef->{$b}}[$msgCntI]) {
-#	${$hashRef->{$a}}[$msgSizeI] = 0 unless(${$hashRef->{$a}}[$msgSizeI]);
-#	${$hashRef->{$b}}[$msgSizeI] = 0 unless(${$hashRef->{$b}}[$msgSizeI]);
-#	return(${$hashRef->{$a}}[$msgSizeI] <=>
-#	       ${$hashRef->{$b}}[$msgSizeI]);
-#    } else {
-#	return(${$hashRef->{$a}}[$msgCntI] <=>
-#	       ${$hashRef->{$b}}[$msgCntI]);
-#    }
-#}
 
 1;
 

@@ -11,7 +11,10 @@ use IO::Select;
 
 sub new {
 	my $class = shift;
-	my $self = { @_ };
+	my $self = {
+		'_max_chunk_lines' => 1024,
+		@_
+	};
 	return bless($self, $class);
 }
 
@@ -26,10 +29,15 @@ sub io_handles {
 sub read_events {
 	my ( $self ) = @_;
 	my @events;
+	my $cnt = 0;
 	while( defined( my $line = $self->{'stdin'}->getline ) ) {
 		chomp( $line );
 		my $event = { message => $line };
 		push( @events, $event );
+		$cnt++;
+		if( $cnt > $self->{_max_chunk_lines} ) {
+			last;
+		}
 	}
 	return @events;
 }
