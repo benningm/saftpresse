@@ -15,11 +15,7 @@ use Time::Piece;
 sub output {
 	my ( $self, $cnt ) = @_;
 
-	$self->print_totals(
-		$cnt->{'PostfixRejects'},
-		$cnt->{'PostfixRecieved'},
-		$cnt->{'PostfixDelivered'},
-	);
+	$self->print_totals( $cnt );
 
 	if( defined $cnt->{'PostfixSmtpdStats'} ) {
 		$self->print_smtpd_stats( $cnt->{'PostfixSmtpdStats'} );
@@ -244,7 +240,10 @@ sub print_traffic_summaries {
 }
 
 sub print_totals {
-	my ( $self, $reject_cnt, $recieved_cnt, $delivered_cnt ) = @_;
+	my ( $self, $cnt ) = @_;
+	my $reject_cnt = $cnt->{'PostfixRejects'};
+	my $recieved_cnt = $cnt->{'PostfixRecieved'};
+	my $delivered_cnt = $cnt->{'PostfixDelivered'};
 	my $smtpdConnCnt = 0;
 
 	# PostfixRejects
