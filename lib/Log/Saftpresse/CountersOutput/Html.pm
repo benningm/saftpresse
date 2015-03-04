@@ -10,6 +10,7 @@ use base 'Log::Saftpresse::CountersOutput';
 
 use Log::Saftpresse::Utils qw( adj_int_units get_smh);
 
+use JSON;
 use Time::Piece;
 use Template;
 
@@ -50,6 +51,14 @@ sub tt {
 		$self->{_tt} = $tt;
 	}
 	return( $self->{_tt} );
+}
+
+sub json {
+	my $self = shift;
+	if( ! defined $self->{_json} ) {
+		$self->{_json} = JSON->new->pretty->utf8;
+	}
+	return( $self->{_json} );
 }
 
 sub template_content {
@@ -104,7 +113,24 @@ sub output {
 	if( defined $cnt->{'PostfixSmtpdStats'} ) {
 		$self->print_smtpd_stats( $cnt->{'PostfixSmtpdStats'} );
 	}
-	$self->print_problems_reports( $cnt );
+	
+	# TODO: fix problem report output
+	#$self->print_problems_reports( $cnt );
+
+	$self->print_traffic_summaries( $cnt );
+
+	if( defined $self->{'top_domains_cnt'}
+			&& $self->{'top_domains_cnt'} != 0 ) {
+		$self->print_domain_summaries( $cnt );
+	}
+
+	if( defined $cnt->{'PostfixSmtpdStats'} ) {
+		$self->print_smtpd_summaries( $cnt );
+	}
+
+	$self->print_user_summaries( $cnt );
+
+	# TODO: restore Message detail of pflogsumm?
 
 	if( defined $cnt->{'TlsStatistics'} ) {
 		$self->print_tls_stats( $cnt );
@@ -114,6 +140,36 @@ sub output {
 	}
 
 	print $self->process('footer');
+
+	return;
+}
+
+sub print_user_summaries {
+	my ( $self, $cnt ) = @_;
+	my $delivered = $cnt->{'PostfixDelivered'};
+
+	my @tables = (
+		[ "Senders by message count" => 'sender',
+			0, 'recieved', 'by_sender' ],
+		[ "Recipients by message count" => 'recipient',
+			0, 'sent', 'by_rcpt' ],
+		[ "Senders by message size" => 'sender',
+			0, 'recieved', 'size', 'by_sender' ],
+		[ "Recipients by message size" => 'recipient',
+			0, 'sent', 'size', 'by_rcpt' ],
+	);
+
+	foreach my $table ( @tables ) {
+		my ( $title, $legend, $total, @node ) = @$table;
+		my $values = $delivered->get_node(@node);
+		if( ! defined $values ) { next; }
+		print $self->hash_top_values( $values,
+			title => $title,
+			total => $total,
+			legend => $legend,
+			unit => $title =~ /size$/ ? 'byte' : 'count',
+		);
+	}
 
 	return;
 }
@@ -198,6 +254,65 @@ sub print_smtpd_stats {
 	return;
 }
 
+sub print_smtpd_summaries {
+	my ( $self, $cnt ) = @_;
+	my $smtpd_stats = $cnt->{'PostfixSmtpdStats'};
+	my $params = {
+		'day' => [ 'Per-Day', 'per_day', 'string' ],
+		'hour' => [ 'Per-Hour', 'per_hr', 'decimal' ],
+		'domain' => [ 'Per-Domain', 'per_domain', [ 'connections', 'decimal', 20 ] ],
+	};
+
+	foreach my $table ( 'day', 'hour', 'domain' ) {
+		my ( $title, $key, $sort ) = @{$params->{ $table }};
+		print $self->headline(1, "$title SMTPD Connection Summary");
+		print $self->statistics_from_hashes(
+			legend => $table,
+			sort => $sort,
+			rows => [
+				[ 'connections', $smtpd_stats->get_node($key) ],
+				[ 'time conn.', $smtpd_stats->get_node('busy', $key) ],
+				[ 'avg./conn.', $self->hash_calc_avg( 2,
+						$smtpd_stats->get_node('busy', $key),
+						$smtpd_stats->get_node($key),
+					), ],
+				[ 'max. time', $smtpd_stats->get_node('busy', 'max_'.$key ), ],
+			],
+		);
+	}
+	return;
+}
+
+sub print_domain_summaries {
+	my ( $self, $cnt ) = @_;
+	my $top_cnt = $self->{'top_domains_cnt'};
+	$top_cnt = defined $top_cnt && $top_cnt >= 0 ?
+		$self->{'top_domains_cnt'} : 20;
+	my $delivered = $cnt->{'PostfixDelivered'};
+
+	foreach my $table ( 'sent', 'recieved' ) {
+		print $self->headline(1, "Host/Domain Summary: Message Delivery (top $top_cnt $table)");
+		print $self->statistics_from_hashes(
+			legend => 'host/domain',
+			sort => [ 'sent cnt', 'decimal', $top_cnt ],
+			rows => [
+				[ 'sent cnt', $delivered->get_node($table, 'by_domain') ],
+				[ 'bytes', $delivered->get_node($table, 'size', 'by_domain') ],
+				$table eq 'sent' ? (
+					# TODO
+					#[ 'defers', $delivered->get_node('busy', 'per_day') ],
+					[ 'avg delay', $self->hash_calc_avg( 2,
+							$delivered->get_node($table, 'delay', 'by_domain'),
+							$delivered->get_node($table, 'by_domain'),
+						), ],
+					[ 'max. delay', $delivered->get_node($table, 'max_delay', 'by_domain'), ],
+				) : (),
+			],
+		);
+	}
+
+	return;
+}
 sub print_geo_stats {
 	my ( $self, $cnt ) = @_;
 	my $client = $cnt->get_node('client');
@@ -329,6 +444,130 @@ sub print_problems_reports {
 	}
 }
 
+sub print_traffic_summaries {
+	my ( $self, $cnt ) = @_;
+	my $params = {
+		'day' => [ 'Per-Day', 'per_day', 'string' ],
+		'hour' => [ 'Per-Hour', 'per_hr', 'decimal' ],
+	};
+
+	foreach my $table ('day', 'hour') {
+		my ( $title, $key, $sort ) = @{$params->{ $table }};
+		print $self->headline(1, 'Traffic Summary ('.$title.')');
+		print $self->statistics_from_hashes(
+			legend => $table,
+			sort => $sort,
+			chart => 1,
+			rows => [
+				[ 'recieved', $cnt->{'PostfixRecieved'}->get_node($key) ],
+				[ 'delivered', $cnt->{'PostfixDelivered'}->get_node('sent', $key) ],
+				[ 'deffered', $cnt->{'PostfixDelivered'}->get_node('deferred', $key), ],
+				[ 'bounced', $cnt->{'PostfixDelivered'}->get_node('bounced', $key), ],
+				[ 'rejected', $cnt->{'PostfixRejects'}->get_node($key) ],
+			],
+		);
+	}
+
+	return;
+}
+
+sub hash_calc_avg {
+	my ( $self, $precision, $total, $count ) = @_;
+	my %avg;
+	my %uniq = map { $_ => 1 } ( keys %$total, keys %$count );
+	my @keys = keys %uniq;
+	foreach my $key ( @keys ) {
+		my $value;
+		if( defined $total->{$key} && $total->{$key} > 0
+				&& defined $count->{$key} && $count->{$key} > 0 ) { 
+			$value = $total->{$key} / $count->{$key};
+		}
+		if( defined $total->{$key} && $total->{$key} eq 0 ) {
+			$value = 0;
+		}
+		if( defined $value ) {
+			$avg{$key} = sprintf('%.'.$precision.'f', $value);
+		} else {
+			$avg{$key} = undef;
+		}
+	}
+	return \%avg;
+}
+
+sub statistics_from_hashes {
+	my ( $self, %params ) = @_;
+	my @rows = @{$params{'rows'}};
+	my @head = map { $_->[0] } @rows;
+	my @hashes = map { $_->[1] } @rows;
+	my @yaxis;
+	my ( @series, @labeled_rows );
+
+	if( ref($params{'sort'}) eq 'ARRAY' ) { # sort by a column value
+		my ( $sortby, $alg, $limit ) = @{$params{'sort'}};
+		my ( $row ) = grep { $_->[0] eq $sortby } @rows;
+		$row = $row->[1];
+		if( ! defined $row ) { die('cant find row '.$sortby.' for sorting'); }
+		if( $alg eq 'decimal' ) {
+			@yaxis = sort { $row->{$b} <=> $row->{$a} } keys %$row;
+		} else { # string
+			@yaxis = sort { $row->{$b} cmp $row->{$a} } keys %$row;
+		}
+		if( $limit > 0 && scalar @yaxis > $limit ) { @yaxis = @yaxis[0 .. ($limit-1) ] };
+	} else { # simple sort by key
+		my @all_keys = map { keys %$_ } @hashes;
+		my %uniq = map { $_ => 1 } @all_keys;
+		if( $params{'sort'} eq 'decimal' ) {
+			@yaxis = sort { $a <=> $b } keys %uniq;
+		} else { # string
+			@yaxis = sort { $a cmp $b } keys %uniq;
+		}
+	}
+
+	foreach my $row ( @yaxis ) {
+		push(\@labeled_rows, [ $row, map { $_->{$row} } @hashes ] );
+	}
+
+	foreach my $row ( @rows ) {
+		my $name = $row->[0];
+		my $values = $row->[1];
+		push(\@series, {
+			label => $name,
+			data => [ map { [
+				$_ =~ /\d{4}-\d{2}-\d{2}/ ? 
+					Time::Piece->strptime($_, '%Y-%m-%d')->epoch
+					 : $_,
+				defined $values->{$_} ? $values->{$_} : 0
+			] } @yaxis ],
+		} );
+	}
+
+	my %options = (
+		legend => $params{'legend'},
+		head => \@head,
+		labeled_rows => \@labeled_rows,
+		series => \@series,
+		yaxis => \@yaxis,
+		hashes => \@hashes,
+	);
+
+	my $output = '';
+	if( defined $params{'chart'} && $params{'chart'} ) {
+		$output .= $self->statistics_chart( %options );
+	}
+	$output .= $self->statistics_table( %options );
+	return $output;
+}
+
+sub statistics_table {
+	my $self = shift;
+	return $self->process('statistics_table', @_ );
+}
+
+sub statistics_chart {
+	my $self = shift;
+	return $self->process('statistics_chart', @_ );
+}
+
 sub get_element_id {
 	my $self = shift;
 	if( ! defined $self->{_cur_element_id} ) {
@@ -429,11 +668,12 @@ __DATA__
 
     <title>[% self.title %]</title>
 
-    <link rel="stylesheet" href="https://markusbenning.de/js/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://markusbenning.de/js/bootstrap-theme.min.css" />
+    <link rel="stylesheet" href="https://markusbenning.de/js/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://markusbenning.de/js/bootstrap/css/bootstrap-theme.min.css" />
     <script src="https://markusbenning.de/js/jquery.min.js"></script>
-    <script src="https://markusbenning.de/js/bootstrap.min.js"></script>
+    <script src="https://markusbenning.de/js/bootstrap/js/bootstrap.min.js"></script>
     <script src="https://markusbenning.de/js/numeral.min.js"></script>
+    <script src="https://markusbenning.de/js/flot/jquery.flot.min.js"></script>
     <script>
     $( document ).ready(function() {
       $("span.unit-count").each( function( index ) {
@@ -582,4 +822,52 @@ __DATA__
 [% END %]
 </div>
 [% END %]
+[% END %]
+
+[% BLOCK statistics_table %]
+<table class="table table-striped table-hover table-condensed">
+  <thead>
+    <tr>
+    <th>[% legend %]</th>
+    [% FOREACH th = head -%]
+    <th>[% th %]</th>
+    [% END -%]
+    </tr>
+  </thead>
+  <tbody>
+  [% FOREACH row = labeled_rows -%]
+  <tr>
+    [% FOREACH td = row -%]
+    <td>[% td != '' ? td : '-' %]</td>
+    [% END -%]
+  </tr>
+  [% END -%]
+  </tbody>
+</table>
+[% END %]
+
+[% BLOCK statistics_chart %]
+[% chartid = 'chart-' _ self.get_element_id -%]
+<div id="[% chartid %]" style="width:100%;height:300px"></div>
+<script>
+$( document ).ready(function() {
+	var data = [% self.json.encode( series ) %];
+	var options = {
+		series: {
+			stack: 1,
+			lines: {
+				show: true,
+			},
+			points: {
+				show: true,
+			},
+			grid: {
+				hoverable: true,
+				clickable: true
+			}
+		}
+	};
+	$("#[% chartid %]").plot(data, options);
+});
+</script>
 [% END %]
