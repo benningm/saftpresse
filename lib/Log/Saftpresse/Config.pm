@@ -23,18 +23,18 @@ tie our %defaults, "Tie::IxHash";
 		level => 'INFO',
 		file => undef, # log to syslog
 	},
-	Inputs => ordered_hash_ref(
+	Input => ordered_hash_ref(
 		Stdin => {},
 	),
-	Plugins => ordered_hash_ref(
+	Plugin => ordered_hash_ref(
 		SyslogTimestamp => {},
 		SyslogProgram => {},
 	),
-	CounterOutputs => ordered_hash_ref (
+	CounterOutput => ordered_hash_ref (
 		Dump => {},
 	),
-	Outputs => ordered_hash_ref (
-		Dump => {},
+	Output => ordered_hash_ref (
+		JSON => {},
 	),
 );
 

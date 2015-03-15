@@ -6,10 +6,12 @@ use warnings;
 # ABSTRACT: a modular logfile analyzer
 # VERSION
 
-use Log::Saftpresse::Analyzer;
-use Log::Saftpresse::Slurp;
 use Log::Saftpresse::Log4perl;
 use Log::Saftpresse::Config;
+
+use Log::Saftpresse::Analyzer;
+use Log::Saftpresse::Slurp;
+use Log::Saftpresse::Outputs;
 
 sub new {
 	my $class = shift;
@@ -19,7 +21,7 @@ sub new {
 		'_analyzer' => Log::Saftpresse::Analyzer->new,
 		# TODO: outputs
 		#'_counteroutputs' => Log::Saftpresse::Outputs->new,
-		#'_outputs' => Log::Saftpresse::Outputs->new,
+		'_outputs' => Log::Saftpresse::Outputs->new,
 		@_,
 	};
 	bless( $self, $class );
@@ -41,9 +43,10 @@ sub init {
 		$config->get('logging', 'file'),
 	);
 
-	$self->{_slurp}->load_config( $config->get_node('Inputs') );
-	$self->{_analyzer}->load_config( $config->get_node('Plugins') );
-	# TODO: outputs
+	$self->{_slurp}->load_config( $config->get_node('Input') );
+	$self->{_analyzer}->load_config( $config->get_node('Plugin') );
+	# TODO:  counter outputs
+	$self->{_outputs}->load_config( $config->get_node('Output') );
 
 	return;
 }
@@ -54,16 +57,17 @@ sub run {
 
 	$log->debug('entering main loop');
 	for(;;) { # main loop
+		my $events;
 		if( $slurp->can_read(1) ) {
-			my $events = $slurp->read_events;
+			$events = $slurp->read_events;
 			foreach my $event ( @$events ) {
 				$self->{_analyzer}->process_event( $event );
-
-				# TODO: output
-				use Data::Dumper;
-				print Dumper( $event );
 			}
 		}
+		if( scalar @$events ) {
+			$self->{_outputs}->output_events( @$events );
+		}
+
 		# TODO: flush counters?
 	}
 

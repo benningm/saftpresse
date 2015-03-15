@@ -9,6 +9,9 @@ use warnings;
 use IO::Handle;
 use IO::Select;
 
+use Sys::Hostname;
+use Time::Piece;
+
 sub new {
 	my $class = shift;
 	my $self = {
@@ -32,7 +35,11 @@ sub read_events {
 	my $cnt = 0;
 	while( defined( my $line = $self->{'stdin'}->getline ) ) {
 		chomp( $line );
-		my $event = { message => $line };
+		my $event = {
+			'host' => hostname,
+			'time' => Time::Piece->new,
+			'message' => $line,
+		};
 		push( @events, $event );
 		$cnt++;
 		if( $cnt > $self->{_max_chunk_lines} ) {
