@@ -100,7 +100,7 @@ if(defined($opts{'version'})) {
 }
 
 my $slurp = Log::Saftpresse::Slurp->new;
-$slurp->load_plugin('Stdin');
+$slurp->load_plugin('log', module => 'Stdin');
 
 my $analyzer = Log::Saftpresse::Analyzer->new;
 
