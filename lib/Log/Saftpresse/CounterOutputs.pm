@@ -1,15 +1,15 @@
-package Log::Saftpresse::Outputs;
+package Log::Saftpresse::CounterOutputs;
 
 use strict;
 use warnings;
 
-# ABSTRACT: class to manage saftpresse outputs
+# ABSTRACT: class to manage saftpresse counter output
 # VERSION
 
 sub new {
 	my $class = shift;
 	my $self = {
-		prefix => 'Log::Saftpresse::Output::',
+		prefix => 'Log::Saftpresse::CountersOutput::',
 		plugins => [],
 	};
 	bless( $self, $class );

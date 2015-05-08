@@ -17,24 +17,34 @@ sub ordered_hash_ref {
 tie our %defaults, "Tie::IxHash";
 %defaults = (
 	'counters' => {
-		'flush_interval' => '300',
+		'flush_interval' => '0',
 	},
 	'logging' => {
 		level => 'INFO',
 		file => undef, # log to syslog
 	},
 	Input => ordered_hash_ref(
-		Stdin => {},
+		stdin => {
+			module => 'Stdin',
+		},
 	),
 	Plugin => ordered_hash_ref(
-		SyslogTimestamp => {},
-		SyslogProgram => {},
+		syslog_timestamp => {
+			module => 'SyslogTimestamp',
+		},
+		syslog_program => {
+			module => 'SyslogProgram',
+		},
 	),
 	CounterOutput => ordered_hash_ref (
-		Dump => {},
+		dump_counters => {
+			module => 'Dump',
+		},
 	),
 	Output => ordered_hash_ref (
-		JSON => {},
+		dump_json => {
+			module => 'JSON',
+		},
 	),
 );
 

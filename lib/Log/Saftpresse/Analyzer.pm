@@ -34,7 +34,10 @@ sub add_plugin {
 
 sub load_plugin {
 	my ( $self, $name, %params )= @_;
-	my $plugin_class = $self->prefix.$name;
+	if( ! defined $params{'module'} ) {
+		die("Parameter module is not defined for Input $name!");
+	}
+	my $plugin_class = $self->prefix.$params{'module'};
 	my $plugin;
 
 	my $code = "require ".$plugin_class.";";

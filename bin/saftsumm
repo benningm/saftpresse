@@ -9,6 +9,7 @@ use locale;
 # VERSION
 
 use Getopt::Long;
+use Pod::Usage;
 
 use Log::Saftpresse::Slurp;
 use Log::Saftpresse::Analyzer;
@@ -50,6 +51,7 @@ GetOptions(
     "i"                        => \$opts{'i'},
     "iso-date-time"            => \$isoDateTime,
     "m"                        => \$opts{'m'},
+    "man"                      => \$opts{'man'},
     "no-no-msg-size"           => \$opts{'noNoMsgSize'},
     'output|o=s'               => \$opts{'output'},
     "problems-first"           => \$opts{'pf'},
@@ -89,6 +91,10 @@ if(defined($opts{'help'})) {
     exit 0;
 }
 
+if( defined $opts{'man'} ) {
+    pod2usage( -exitval => 1, -verbose => 99 );
+}
+
 if(defined($opts{'version'})) {
 	my $version;
         {
@@ -122,28 +128,36 @@ my $output = $output_class->new(
 	top_users_cnt => $opts{'u'},
 );
 
-$analyzer->load_plugin('SyslogTimestamp');
-$analyzer->load_plugin('SyslogProgram');
+$analyzer->load_plugin('SyslogTimestamp',
+	module => 'SyslogTimestamp' );
+$analyzer->load_plugin('SyslogProgram',
+	module => 'SyslogProgram' );
 if( defined $opts{'d'} ) {
 	$analyzer->load_plugin('LimitDay',
-		'day' => $opts{'d'});
+		module => 'LimitDay',
+		day => $opts{'d'});
 }
-$analyzer->load_plugin('LimitProgram', regex => '^'.$syslogName);
+$analyzer->load_plugin('LimitProgram',
+	module => 'LimitProgram',
+	regex => '^'.$syslogName);
 
-$analyzer->load_plugin('PostfixQueueID');
-$analyzer->load_plugin('PostfixMessages',
+$analyzer->load_plugin('PostfixQueueID', module => 'PostfixQueueID');
+$analyzer->load_plugin('PostfixMessages', module => 'PostfixMessages',
 	message_detail => $opts{'verbMsgDetail'},
 	smtpd_warn_detail => $opts{'smtpdWarnDetail'},
 );
 $analyzer->load_plugin('PostfixRejects',
+	module =>'PostfixRejects',
 	message_detail => $opts{'verbMsgDetail'},
 	reject_detail => $opts{'rejectDetail'},
 	ignore_case => $opts{'i'},
 	rej_add_from => $opts{'rejAddFrom'},
 	verp_mung => $opts{'verpMung'},
 );
-$analyzer->load_plugin('PostfixRecieved');
+$analyzer->load_plugin('PostfixRecieved',
+	module => 'PostfixRecieved');
 $analyzer->load_plugin('PostfixDelivered',
+	module => 'PostfixDelivered',
 	verp_mung => $opts{'verpMung'},
 	ignore_case => $opts{'i'},
 	uucp_mung => $opts{'m'},
@@ -153,17 +167,22 @@ $analyzer->load_plugin('PostfixDelivered',
 	bounce_detail => $opts{'bounceDetail'},
 );
 if( defined $opts{'smtpDetail'} && $opts{'smtpDetail'} > 0 ) {
-	$analyzer->load_plugin('PostfixSmtp');
+	$analyzer->load_plugin('PostfixSmtp',
+		module => 'PostfixSmtp');
 }
 if( defined $opts{'smtpdStats'} ) {
-	$analyzer->load_plugin('PostfixSmtpdStats');
+	$analyzer->load_plugin('PostfixSmtpdStats',
+		module => 'PostfixSmtpdStats');
 }
 if( defined $opts{'tlsStats'} ) {
-	$analyzer->load_plugin('TlsStatistics');
+	$analyzer->load_plugin('TlsStatistics',
+		module => 'TlsStatistics');
 }
 if( defined $opts{'geoip'} ) {
-	$analyzer->load_plugin('GeoIP');
-	$analyzer->load_plugin('PostfixGeoStats');
+	$analyzer->load_plugin('GeoIP',
+		module => 'GeoIP');
+	$analyzer->load_plugin('PostfixGeoStats',
+		module => 'PostfixGeoStats');
 }
 
 for(;;) {
