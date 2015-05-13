@@ -421,27 +421,27 @@ $output->output( $analyzer->get_all_counters );
 
     Produce a report of previous day's activities:
 
-        saftsumm -d yesterday /var/log/maillog
+        saftsumm -d yesterday < /var/log/maillog
 
     A report of prior week's activities (after logs rotated):
 
-        saftsumm /var/log/maillog.0
+        saftsumm < /var/log/maillog.0
 
     What's happened so far today:
 
-        saftsumm -d today /var/log/maillog
+        saftsumm -d today < /var/log/maillog
 
     Crontab entry to generate a report of the previous day's activity
     at 10 minutes after midnight.
 
-	10 0 * * * /usr/local/sbin/saftsumm yesterday /var/log/maillog
+	10 0 * * * /usr/local/sbin/saftsumm yesterday < /var/log/maillog
 	2>&1 |/usr/bin/mailx -s "`uname -n` daily mail stats" postmaster
 
     Crontab entry to generate a report for the prior week's activity.
     (This example assumes one rotates ones mail logs weekly, some time
     before 4:10 a.m. on Sunday.)
 
-	10 4 * * 0   /usr/local/sbin/saftsumm /var/log/maillog.0
+	10 4 * * 0   /usr/local/sbin/saftsumm < /var/log/maillog.0
 	2>&1 |/usr/bin/mailx -s "`uname -n` weekly mail stats" postmaster
 
     The two crontab examples, above, must actually be a single line
