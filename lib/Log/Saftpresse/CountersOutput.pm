@@ -1,16 +1,9 @@
 package Log::Saftpresse::CountersOutput;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: base class for output of counters
 # VERSION
-
-sub new {
-	my $class = shift;
-	my $self = { @_ };
-	return bless($self, $class);
-}
 
 sub output {
 	my ( $self, $counters ) = @_;

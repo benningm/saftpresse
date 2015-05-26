@@ -1,12 +1,11 @@
 package Log::Saftpresse::Plugin::PostfixSmtp;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to gather postfix smtp client statistics
 # VERSION
 
-use base 'Log::Saftpresse::Plugin';
+extends 'Log::Saftpresse::Plugin';
 
 sub process {
 	my ( $self, $stash ) = @_;

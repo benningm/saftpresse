@@ -1,12 +1,11 @@
 package Log::Saftpresse::CountersOutput::Html;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to output counters in HTML report
 # VERSION
 
-use base 'Log::Saftpresse::CountersOutput';
+extends 'Log::Saftpresse::CountersOutput';
 
 use Log::Saftpresse::Utils qw( adj_int_units get_smh);
 

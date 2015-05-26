@@ -1,12 +1,11 @@
 package Log::Saftpresse::Plugin::PostfixDelivered;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to gather postfix delivered messages statistics
 # VERSION
 
-use base 'Log::Saftpresse::Plugin';
+extends 'Log::Saftpresse::Plugin';
 
 use Log::Saftpresse::Utils qw( verp_mung );
 

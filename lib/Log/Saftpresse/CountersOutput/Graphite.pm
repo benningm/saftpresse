@@ -1,12 +1,11 @@
 package Log::Saftpresse::CountersOutput::Graphite;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to write counters to carbon line reciever
 # VERSION
 
-use base 'Log::Saftpresse::CountersOutput';
+extends 'Log::Saftpresse::CountersOutput';
 
 use Net::Domain qw( hostfqdn );
 use IO::Socket::INET;
@@ -22,26 +21,26 @@ sub output {
 	return;
 }
 
-sub graphit_prefix {
-	my $self = shift;
-	if( ! defined $self->{'graphit_prefix'} ) {
-		$self->{'graphit_prefix'} = hostfqdn;
-		$self->{'graphit_prefix'} =~ s/\./_/g;
-	}
-	return $self->{'graphit_prefix'};
-}
+has 'graphit_prefix' => ( is => 'rw', isa => 'Str', lazy => 1,
+	default => sub {
+		$prefix = hostfqdn;
+		$prefix =~ s/\./_/g;
+		return $prefix;
+	},
+);
 
-sub _handle {
-	my $self = shift;
-	if( ! defined $self->{'_handle'} ) {
-		$self->{'_handle'} = IO::Socket::INET->new(
+has '_handle' => (
+	is => 'rw', isa => 'IO::Socket::INET', lazy => 1,
+	default => sub {
+		my $self = shift;
+		my $handle = IO::Socket::INET->new(
 			PeerAddr => $self->{'host'} || '127.0.0.1',
 			PeerPort => $self->{'port'} || '2003',
 			Proto => 'tcp',
 		) or die('error opening connection to graphite line reciever: '.$@);
-	}
-	return( $self->{'_handle'} );
-}
+		return $handle;
+	},
+);
 
 sub _proc_hash {
 	my ( $self, $path, $now, $hash ) = @_;

@@ -1,12 +1,11 @@
 package Log::Saftpresse::Plugin::PostfixSmtpdStats;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to gather postfix/smtpd advanced statistics
 # VERSION
 
-use base 'Log::Saftpresse::Plugin';
+extends 'Log::Saftpresse::Plugin';
 
 use Log::Saftpresse::Utils qw( gimme_domain );
 

@@ -1,7 +1,6 @@
 package Log::Saftpresse;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: a modular logfile analyzer
 # VERSION
@@ -14,46 +13,59 @@ use Log::Saftpresse::Slurp;
 use Log::Saftpresse::CounterOutputs;
 use Log::Saftpresse::Outputs;
 
-sub new {
-	my $class = shift;
-	my $self = {
-		'_config' => Log::Saftpresse::Config->new,
-		'_slurp' => Log::Saftpresse::Slurp->new,
-		'_analyzer' => Log::Saftpresse::Analyzer->new,
-		'_counter_outputs' => Log::Saftpresse::CounterOutputs->new,
-		'_outputs' => Log::Saftpresse::Outputs->new,
-		'_flush_interval' => undef,
-		'_last_flush_counters' => time,
-		@_,
-	};
-	bless( $self, $class );
-	return( $self );
-}
+has 'config' => (
+	is => 'ro', isa => 'Log::Saftpresse::Config', lazy => 1,
+	default => sub { Log::Saftpresse::Config->new },
+	handles => [ 'load_config' ],
+);
 
-sub load_config {
-	my $self = shift;
+has 'slurp' => (
+	is => 'ro', isa => 'Log::Saftpresse::Slurp', lazy => 1,
+	default => sub { Log::Saftpresse::Slurp->new },
+);
 
-	$self->{'_config'}->load_config(@_);
+has 'analyzer' => (
+	is => 'ro', isa => 'Log::Saftpresse::Analyzer', lazy => 1,
+	default => sub { Log::Saftpresse::Analyzer->new },
+);
 
-	$self->{'_flush_interval'}
-		= $self->{'_config'}->get('counters', 'flush_interval');
+has 'counter_outputs' => (
+	is => 'ro', isa => 'Log::Saftpresse::CounterOutputs', lazy => 1,
+	default => sub { Log::Saftpresse::CounterOutputs->new },
+);
 
-	return;
-}
+has 'outputs' => (
+	is => 'ro', isa => 'Log::Saftpresse::Outputs', lazy => 1,
+	default => sub { Log::Saftpresse::Outputs->new },
+);
+
+has 'flush_interval' => (
+	is => 'rw', isa => 'Maybe[Int]'
+	default => sub {
+		my $self = shift;
+		return $self->config->get('counters', 'flush_interval');
+	},
+);
+
+has '_last_flush_counters' => (
+	is => 'rw', isa => 'Int',
+	default => sub { time },
+);
+
 
 sub init {
 	my $self = shift;
-	my $config = $self->{_config};
+	my $config = $self->config;
 	
 	Log::Saftpresse::Log4perl->init(
 		$config->get('logging', 'level'),
 		$config->get('logging', 'file'),
 	);
 
-	$self->{_slurp}->load_config( $config->get_node('Input') );
-	$self->{_analyzer}->load_config( $config->get_node('Plugin') );
-	$self->{_counter_outputs}->load_config( $config->get_node('CounterOutput') );
-	$self->{_outputs}->load_config( $config->get_node('Output') );
+	$self->slurp->load_config( $config->get_node('Input') );
+	$self->analyzer->load_config( $config->get_node('Plugin') );
+	$self->counter_outputs->load_config( $config->get_node('CounterOutput') );
+	$self->outputs->load_config( $config->get_node('Output') );
 
 	return;
 }
@@ -61,13 +73,12 @@ sub init {
 sub _need_flush_counters {
 	my $self = shift;
 
-	if( ! defined $self->{'_flush_interval'}
-			|| $self->{'_flush_interval'} < 1 ) {
+	if( ! defined $self->flush_interval
+			|| $self->flush_interval < 1 ) {
 		return 0;
 	}
 
-	my $next_flush = $self->{'_last_flush_counters'}
-		+ $self->{'_flush_interval'};
+	my $next_flush = $self->_last_flush_counters + $self->flush_interval;
 	if( time < $next_flush ) {
 		return 0;
 	}
@@ -77,13 +88,13 @@ sub _need_flush_counters {
 
 sub _flushed_counters {
 	my $self = shift;
-	$self->{'_last_flush_counters'} = time;
+	$self->_last_flush_counters( time );
 	return;
 }
 
 sub run {
 	my $self = shift;
-	my $slurp = $self->{_slurp};
+	my $slurp = $self->slurp;
 	my $last_flush = time;
 
 	$log->debug('entering main loop');
@@ -92,16 +103,16 @@ sub run {
 		if( $slurp->can_read(1) ) {
 			$events = $slurp->read_events;
 			foreach my $event ( @$events ) {
-				$self->{_analyzer}->process_event( $event );
+				$self->analyzer->process_event( $event );
 			}
 		}
 		if( scalar @$events ) {
-			$self->{_outputs}->output( @$events );
+			$self->outputs->output( @$events );
 		}
 
 		if( $self->_need_flush_counters ){
-			$self->{'_counter_outputs'}->output(
-				$self->{_analyzer}->get_all_counters );
+			$self->counter_outputs->output(
+				$self->analyzer->get_all_counters );
 			$self->_flushed_counters;
 		}
 	}

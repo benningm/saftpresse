@@ -1,25 +1,16 @@
 package Log::Saftpresse::Counters;
 
-use strict;
-use warnings;
-
-use Carp;
-
 # ABSTRACT: objects to hold and manipulate counters
 # VERSION
 
-sub new {
-	my $class = shift;
-	my $self = {
-		counters => {},
-	};
-	return bless( $self, $class );
-}
+use Moose;
 
-sub counters {
-	my $self = shift;
-	return( $self->{'counters'} );
-}
+use Carp;
+
+has 'counters' => (
+	is => 'ro', isa => 'HashRef', lazy => 1,
+	default => sub { {} },
+);
 
 sub incr_one {
 	my $self = shift;

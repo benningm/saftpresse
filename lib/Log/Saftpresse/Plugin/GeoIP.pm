@@ -1,12 +1,11 @@
 package Log::Saftpresse::Plugin::GeoIP;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to lookup geoip database
 # VERSION
 
-use base 'Log::Saftpresse::Plugin';
+extends 'Log::Saftpresse::Plugin';
 
 use Geo::IP;
 
@@ -15,7 +14,7 @@ sub process {
 	my $ip = $stash->{'client_ip'};
 
 	if( defined $ip ) {
-		my $cc = $self->{'_geoip'}->country_code_by_addr( $ip );
+		my $cc = $self->_geoip->country_code_by_addr( $ip );
 		if( defined $cc ) {
 			$stash->{'geoip_cc'} = $cc;
 		} else {
@@ -26,15 +25,15 @@ sub process {
 	return;
 }
 
-sub init {
-	my $self = shift;
-	my $db = $self->{'database'};
-	if( ! defined $db ) {
-		$db = '/usr/share/GeoIP/GeoIP.dat';
-	}
-	$self->{'_geoip'} = Geo::IP->open( $db, GEOIP_STANDARD );
-	return;
-}
+has 'database' => ( is => 'ro', isa => 'Str', default => '/usr/share/GeoIP/GeoIP.dat' );
+
+has '_geoip' => (
+	is => 'ro', isa => 'Geo::IP', lazy => 1,
+	default => sub {
+		my $self = shift;
+		return Geo::IP->open( $self->database, GEOIP_STANDARD );
+	},
+);
 
 1;
 

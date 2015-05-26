@@ -1,57 +1,50 @@
 package Log::Saftpresse::Notes;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: object to hold informations across log events
 # VERSION
 
-sub new {
-	my $class = shift;
-	my $self = {
-		_data => {},
-		_ring => [],
-		max_entries => 10000,
-	};
-	return bless( $self, $class );
-}
+has 'data' => ( is => 'rw', isa => 'HashRef', lazy => 1,
+	traits => [ 'Hash' ],
+	default => sub { {} },
+	handles => {
+		'reset_data' => 'clear',
+	},
+);
 
-sub max_entries {
-	my $self = shift;
-	return( $self->{'max_entries'} );
-}
+has 'ring' => ( is => 'rw', isa => 'ArrayRef', lazy => 1,
+	traits => [ 'Array' ],
+	default => sub { [] },
+	handles => {
+		'size' => 'count',
+		'reset_ring' => 'clear',
+	},
+);
+
+has 'max_entries' => ( is => 'rw', isa => 'Int', default => 10000 );
 
 sub reset {
 	my $self = shift;
-	$self->{'_data'} = {};
-	$self->{'_ring'} = [];
+	$self->reset_data;
+	$self->reset_ring;
 	return;
-}
-
-sub size {
-	my $self = shift;
-	return( scalar @{$self->{'_ring'}} );
-}
-
-sub data {
-	my $self = shift;
-	return( $self->{'_data'} );
 }
 
 sub get {
 	my ( $self, $key ) = @_;
-	return( $self->{'_data'}->{$key} );
+	return( $self->data->{$key} );
 }
 
 sub set {
 	my ( $self, $key, $value ) = @_;
 
-	if( defined $self->{'_data'}->{$key} ) {
+	if( defined $self->data->{$key} ) {
 		$self->remove( $key );
 	}
 
-	push( @{$self->{'_ring'}}, $key );
-	$self->{'_data'}->{$key} = $value;
+	push( @{$self->ring}, $key );
+	$self->data->{$key} = $value;
 
 	$self->expire;
 
@@ -61,16 +54,16 @@ sub set {
 sub remove {
 	my ( $self, $key ) = @_;
 
-	if( ! defined $self->{'_data'}->{$key} ) {
+	if( ! defined $self->data->{$key} ) {
 		return;
 	}
-	delete $self->{'_data'}->{$key};
+	delete $self->data->{$key};
 
 	# search the array for the key and remove it
 	# iterating may be slow, but remove should be rare
-	for( my $i = 0 ; $i < scalar(@{$self->{'_ring'}}) ; $i++ ) {
-		if( $self->{'_ring'}->[$i] eq $key ) {
-			splice(@{$self->{'_ring'}}, $i, 1);
+	for( my $i = 0 ; $i < scalar(@{$self->ring}) ; $i++ ) {
+		if( $self->ring->[$i] eq $key ) {
+			splice(@{$self->ring}, $i, 1);
 			last;
 		}
 	}
@@ -80,7 +73,7 @@ sub remove {
 
 sub is_full {
 	my $self = shift;
-	if( $self->size >= $self->{'max_entries'} ) {
+	if( $self->size >= $self->max_entries ) {
 		return 1;
 	}
 	return 0;
@@ -88,13 +81,13 @@ sub is_full {
 
 sub expire {
 	my $self = shift;
-	if( $self->size <= $self->{'max_entries'} ) {
+	if( $self->size <= $self->max_entries ) {
 		return;
 	}
-	my $num = $self->size - $self->{'max_entries'};
+	my $num = $self->size - $self->max_entries;
 	foreach my $i ( 1..$num ) {
-		my $key = shift @{$self->{'_ring'}};
-		delete $self->{'_data'}->{$key};
+		my $key = shift @{$self->ring};
+		delete $self->data->{$key};
 	}
 	return;
 }

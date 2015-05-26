@@ -1,12 +1,11 @@
 package Log::Saftpresse::Plugin::SyslogProgram;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to parse syslog program prefix
 # VERSION
 
-use base 'Log::Saftpresse::Plugin';
+extends 'Log::Saftpresse::Plugin';
 
 use Time::Piece;
 

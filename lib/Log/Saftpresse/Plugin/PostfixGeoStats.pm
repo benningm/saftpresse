@@ -1,12 +1,11 @@
 package Log::Saftpresse::Plugin::PostfixGeoStats;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to build postfix statistics from geoip info
 # VERSION
 
-use base 'Log::Saftpresse::Plugin';
+extends 'Log::Saftpresse::Plugin';
 
 sub process {
 	my ( $self, $stash ) = @_;

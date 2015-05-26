@@ -1,36 +1,26 @@
 package Log::Saftpresse::Plugin::LimitDay;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to skip messages not from today or yesterday
 # VERSION
 
-use base 'Log::Saftpresse::Plugin';
+extends 'Log::Saftpresse::Plugin';
 
 use Time::Piece;
 use Time::Seconds;
 
-sub day {
-	my $self = shift;
-	return( $self->{'day'} );
-}
+has 'day' => ( is => 'rw', isa => 'Maybe[Str]' );
 
-sub now {
-	my $self = shift;
-	if( ! defined $self->{'_now'} ) {
-		$self->{'_now'} = Time::Piece->new;
-	}
-	return( $self->{'_now'} );
-}
+has 'now' => ( is => 'rw', isa => 'Time::Piece', lazy => 1,
+	default => sub { Time::Piece->new },
+);
 
-sub yesterday {
-	my $self = shift;
-	if( ! defined $self->{'_yesterday'} ) {
-		$self->{'_yesterday'} = ( Time::Piece->new - ONE_DAY );
-	}
-	return( $self->{'_yesterday'} );
-}
+has 'yesterday' => ( is => 'rw', isa => 'Time::Piece', lazy => 1,
+	default => sub {
+		return Time::Piece->new - ONE_DAY;
+	},
+);
 
 sub is_yesterday {
 	my ( $self, $time ) = @_;

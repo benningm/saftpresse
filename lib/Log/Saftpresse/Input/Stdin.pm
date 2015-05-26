@@ -1,7 +1,6 @@
 package Log::Saftpresse::Input::Stdin;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: log input for reading STDIN
 # VERSION
@@ -12,14 +11,9 @@ use IO::Select;
 use Sys::Hostname;
 use Time::Piece;
 
-sub new {
-	my $class = shift;
-	my $self = {
-		'_max_chunk_lines' => 1024,
-		@_
-	};
-	return bless($self, $class);
-}
+extends 'Log::Saftpresse::Input';
+
+has 'max_chunk_lines' => ( is => 'rw', isa => 'Int', default => 1024 );
 
 sub io_handles {
 	my $self = shift;
@@ -42,7 +36,7 @@ sub read_events {
 		};
 		push( @events, $event );
 		$cnt++;
-		if( $cnt > $self->{_max_chunk_lines} ) {
+		if( $cnt > $self->max_chunk_lines ) {
 			last;
 		}
 	}

@@ -1,12 +1,11 @@
 package Log::Saftpresse::Plugin::Dump;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to dump current message $stash
 # VERSION
 
-use base 'Log::Saftpresse::Plugin';
+extends 'Log::Saftpresse::Plugin';
 
 use Data::Dumper;
 

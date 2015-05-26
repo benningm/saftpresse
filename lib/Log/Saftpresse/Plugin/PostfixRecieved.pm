@@ -1,12 +1,11 @@
 package Log::Saftpresse::Plugin::PostfixRecieved;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to gather postfix recieved messages statistics
 # VERSION
 
-use base 'Log::Saftpresse::Plugin';
+extends 'Log::Saftpresse::Plugin';
 
 use Log::Saftpresse::Utils qw( postfix_remote );
 

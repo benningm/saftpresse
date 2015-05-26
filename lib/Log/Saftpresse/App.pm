@@ -1,15 +1,13 @@
 package Log::Saftpresse::App;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: commandline interface extension for Log::Saftpresse
 # VERSION
 
-use base 'Log::Saftpresse';
+extends 'Log::Saftpresse';
 
 use Getopt::Long;
-
 use Log::Saftpresse::Log4perl;
 
 sub print_usage {
@@ -22,33 +20,35 @@ sub print_usage {
 	exit 0;
 }
 
-sub get_options {
-	my $self = shift;
-	my %opts;
+has 'options' => (
+	is => 'rw', isa => 'HashRef',
+	default => sub {
+		my $self = shift;
+		my %opts;
 
-	GetOptions(
-		"help|h" => \$opts{'help'},
-		"config|c=s"   => \$opts{'config'},
-		"log-level|l=i"   => \$opts{'log_level'},
-	) or $self->print_usage;
-	if( $opts{'help'} ) {
-		$self->print_usage;
-	}
+		GetOptions(
+			"help|h" => \$opts{'help'},
+			"config|c=s"   => \$opts{'config'},
+			"log-level|l=i"   => \$opts{'log_level'},
+		) or $self->print_usage;
 
-	$self->{'_options'} = \%opts;
-	return;
-}
+		if( $opts{'help'} ) {
+			$self->print_usage;
+		}
+
+		return \%opts;
+	},
+);
 
 sub init_with_options {
 	my $self = shift;
 
-	$self->get_options;
-	if( $self->{_options}->{'config'} ) {
-		$self->load_config( $self->{_options}->{'config'} );
+	if( $self->options->{'config'} ) {
+		$self->load_config( $self->options->{'config'} );
 	}
 	$self->init;
-	if( defined $self->{_options}->{'log_level'} ) {
-		Log::Saftpresse::Log4perl->level( $self->{_options}->{'log_level'} );
+	if( defined $self->options->{'log_level'} ) {
+		Log::Saftpresse::Log4perl->level( $self->options->{'log_level'} );
 	}
 
 	return;

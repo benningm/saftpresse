@@ -1,18 +1,19 @@
 package Log::Saftpresse::Plugin::LimitProgram;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to limit messages by syslog program name
 # VERSION
 
-use base 'Log::Saftpresse::Plugin';
+extends 'Log::Saftpresse::Plugin';
+
+has 'regex' => ( is => 'rw', isa => 'Str', required => 1 );
 
 sub process {
 	my ( $self, $stash ) = @_;
-	my $regex = $self->{'regex'};
+	my $regex = $self->regex;
 
-	if( ! defined $stash->{'program'} || ! defined $regex ) {
+	if( ! defined $stash->{'program'} ) {
 		return;
 	}
 	if( $stash->{'program'} !~ /$regex/ ) {

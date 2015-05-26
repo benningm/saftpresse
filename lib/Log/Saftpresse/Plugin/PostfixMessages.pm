@@ -1,12 +1,11 @@
 package Log::Saftpresse::Plugin::PostfixMessages;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to gather postfix warning|fatal|panic messages
 # VERSION
 
-use base 'Log::Saftpresse::Plugin';
+extends 'Log::Saftpresse::Plugin';
 
 use Log::Saftpresse::Utils qw( string_trimmer );
 

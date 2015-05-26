@@ -1,27 +1,18 @@
 package Log::Saftpresse::Plugin;
 
-use strict;
-use warnings;
+use Moose;
 
-# ABSTRACT: base class for pflogsumm plugins
+# ABSTRACT: base class for saftpresse plugins
 # VERSION
 
 use Log::Saftpresse::Counters;
 
-sub new {
-	my $class = shift;
-	my $self = {
-		'counters' => Log::Saftpresse::Counters->new,
-		@_,
-	};
-
-	return bless($self, $class);
-}
-
-sub counters {
-	my $self = shift;
-	return( $self->{'counters'} );
-}
+has 'counters' => (
+	is => 'ro', isa => 'Log::Saftpresse::Counters', lazy => 1,
+	default => sub {
+		 Log::Saftpresse::Counters->new;
+	},
+);
 *cnt = \&counters;
 
 sub process {

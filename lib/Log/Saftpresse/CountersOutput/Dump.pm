@@ -1,16 +1,17 @@
 package Log::Saftpresse::CountersOutput::Dump;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to dump counters to stdout
 # VERSION
 
-use base 'Log::Saftpresse::CountersOutput';
+extends 'Log::Saftpresse::CountersOutput';
 
 use JSON;
 use Data::Dumper;
 use Sys::Hostname;
+
+has 'format' => ( is => 'rw', isa => 'Str', default => 'graphit' );
 
 sub output {
 	my ( $self, $counters ) = @_;
@@ -18,25 +19,23 @@ sub output {
 		$_ => $counters->{$_}->counters,
 	} keys %$counters;
 
-	if( ! defined $self->{'format'}
-       			|| lc $self->{'format'} eq 'graphit' ) {
+	if( lc $self->format eq 'graphit' ) {
 		$self->_output_graphit( \%data );
-	} elsif ( lc $self->{'format'} eq 'json' ) {
+	} elsif ( lc $self->format eq 'json' ) {
 		$self->_output_json( \%data );
-	} elsif ( lc $self->{'format'} eq 'perl' ) {
+	} elsif ( lc $self->format eq 'perl' ) {
 		$self->_output_perl( \%data );
 	}
 
 	return;
 }
 
-sub graphit_prefix {
-	my $self = shift;
-	if( ! defined $self->{'graphit_prefix'} ) {
-		$self->{'graphit_prefix'} = 'server.'.hostname;
-	}
-	return $self->{'graphit_prefix'};
-}
+has 'graphit_prefix' => (
+	is => 'rw', isa => 'Str', lazy => 1,
+	default => sub {
+		return 'server.'.hostname;
+	},
+);
 
 sub _output_graphit { 
 	my ( $self, $data ) = @_;

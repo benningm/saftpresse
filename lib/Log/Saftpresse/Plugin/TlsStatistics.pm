@@ -1,12 +1,11 @@
 package Log::Saftpresse::Plugin::TlsStatistics;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to gather TLS statistics
 # VERSION
 
-use base 'Log::Saftpresse::Plugin';
+extends 'Log::Saftpresse::Plugin';
 
 sub process {
 	my ( $self, $stash, $notes ) = @_;

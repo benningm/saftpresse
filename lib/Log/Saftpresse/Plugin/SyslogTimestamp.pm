@@ -1,12 +1,11 @@
 package Log::Saftpresse::Plugin::SyslogTimestamp;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to parse syslog timestamp prefix
 # VERSION
 
-use base 'Log::Saftpresse::Plugin';
+extends 'Log::Saftpresse::Plugin';
 
 use Time::Piece;
 

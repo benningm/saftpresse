@@ -1,7 +1,6 @@
 package Log::Saftpresse::Input::FileTail;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: log input for following a file
 # VERSION
@@ -12,11 +11,7 @@ use File::stat;
 use Time::Piece;
 use Sys::Hostname;
 
-sub new {
-	my $class = shift;
-	my $self = { @_ };
-	return bless($self, $class);
-}
+extends 'Log::Saftpresse::Input';
 
 sub path {
 	my $self = shift;
