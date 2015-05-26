@@ -50,9 +50,11 @@ sub read_events {
 sub eof {
 	my $self = shift;
 	if( stat($self->{'file'})->nlink == 0 ) {
-		return(1); # file has been deleted
-		# should we instead try to reopen it?
-		# may be it just got rotated
+		# file has been deleted (logrotate?)
+		
+		# reopen file
+		$self->{'file'}->close;
+		$self->init;
 	}
 	return 0; # we dont signal eof, we're almost always eof.
 }

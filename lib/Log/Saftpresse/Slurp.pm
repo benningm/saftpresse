@@ -48,7 +48,7 @@ sub can_read {
 	# use select() when possible
 	if( $self->{'select'}->count ) {
 		$self->{'select'}->can_read( $sleep );
-	} else {
+	} elsif( $sleep > 0 ) { # may be negative if clock is drifting
 		sleep( $sleep );
 	}
 

@@ -8,10 +8,6 @@ use warnings;
 
 use base 'Log::Saftpresse::Output';
 
-use Data::Dumper;
-
-use JSON;
-
 sub json {
 	my $self = shift;
 	if( ! defined $self->{_json} ) {
@@ -33,9 +29,39 @@ sub output {
 			$output{'@timestamp'} = $output{'time'}->datetime;
 			delete $output{'time'};
 		}
-		print $self->json->encode( \%output );
+		$self->dump_json_data( \%output );
 	}
 
+	return;
+}
+
+sub _backend {
+	my $self = shift;
+	if( defined $self->{'_backend'} ) {
+		return $self->{'_backend'} ;
+	}
+	foreach my $module ( 'JSON::Color', 'JSON') {
+		my $require = "require $module;";
+		eval $require;
+		if( ! $@ ) {
+			return $module;
+		}
+	}
+	die('could not find supported JSON output module. Install JSON::Color or JSON.');
+}
+
+sub dump_json_data {
+	my ( $self, $data ) = @_;
+
+	my $backend = $self->_backend;
+
+	if( $backend eq 'JSON::Color' ) {
+		print JSON::Color::encode_json( $data, { pretty => 1 } )."\n";
+	} elsif( $backend eq 'JSON' ) {
+		print $self->json->encode( $data );
+	} else {
+		die("unknown JSON backend module or not defined?!");
+	}
 	return;
 }
 

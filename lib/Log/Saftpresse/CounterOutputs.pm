@@ -30,7 +30,7 @@ sub add_plugin {
 sub load_plugin {
 	my ( $self, $name, %params )= @_;
 	if( ! defined $params{'module'} ) {
-		die("Parameter module is not defined for Input $name!");
+		die("Parameter module is not defined for CounterOutput $name!");
 	}
 	my $plugin_class = $self->prefix.$params{'module'};
 	my $plugin;
