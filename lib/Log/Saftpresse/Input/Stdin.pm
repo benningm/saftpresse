@@ -15,19 +15,35 @@ extends 'Log::Saftpresse::Input';
 
 has 'max_chunk_lines' => ( is => 'rw', isa => 'Int', default => 1024 );
 
-sub io_handles {
-	my $self = shift;
-	if( ! defined $self->{'stdin'} ) {
-		die('stdin handle has not been initialized!');
-	}
-	return( $self->{'stdin'} );
+has 'stdin' => (
+	is => 'ro', isa => 'IO::Handle', lazy => 1,
+	default => sub {
+		my $fh = IO::Handle->new_from_fd(fileno(STDIN),"r");
+		$fh->blocking(0);
+		return $fh;
+	},
+	handles => {
+		'eof' => 'eof',
+	},
 }
+# we only have one handle, just alias
+*io_handles = \&stdin;
+
+has 'io_select' => (
+	is => 'ro', isa => 'IO::Select', lazy => 1,
+	default => sub {
+		my $self = shift;
+		my $s = IO::Select->new();
+		$s->add( $self->stdin );
+		return $s;
+	},
+);
 
 sub read_events {
 	my ( $self ) = @_;
 	my @events;
 	my $cnt = 0;
-	while( defined( my $line = $self->{'stdin'}->getline ) ) {
+	while( defined( my $line = $self->stdin->getline ) ) {
 		chomp( $line );
 		my $event = {
 			'host' => hostname,
@@ -45,22 +61,8 @@ sub read_events {
 
 sub can_read {
 	my ( $self ) = @_;
-	my @can_read = $self->{'select'}->can_read(0);
+	my @can_read = $self->io_select->can_read(0);
 	return( scalar @can_read );
-}
-
-sub eof {
-	my $self = shift;
-	return $self->{'stdin'}->eof;
-}
-
-sub init {
-	my $self = shift;
-	$self->{'stdin'} = IO::Handle->new_from_fd(fileno(STDIN),"r");
-	$self->{'stdin'}->blocking(0);
-	$self->{'select'} = IO::Select->new();
-	$self->{'select'}->add( $self->{'stdin'} );
-	return;
 }
 
 1;

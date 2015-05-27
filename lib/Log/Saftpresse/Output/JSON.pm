@@ -1,23 +1,21 @@
 package Log::Saftpresse::Output::JSON;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to dump events to in JSON to stdout
 # VERSION
 
-use base 'Log::Saftpresse::Output';
+extends 'Log::Saftpresse::Output';
 
-sub json {
-	my $self = shift;
-	if( ! defined $self->{_json} ) {
-		$self->{_json} = JSON->new;
-		$self->{_json}->utf8(1);
-		$self->{_json}->pretty(1);
-		$self->{_json}->allow_blessed(1);
-	}
-	return $self->{_json};
-}
+has 'json' => (
+	is => 'ro', isa => 'JSON', lazy => 1,
+	default => sub {
+		my $j = JSON->new;
+		$j->utf8(1); $j->pretty(1); $j->allow_blessed(1);
+		return $j;
+	},
+);
+
 
 sub output {
 	my ( $self, @events ) = @_;

@@ -40,7 +40,7 @@ has 'outputs' => (
 );
 
 has 'flush_interval' => (
-	is => 'rw', isa => 'Maybe[Int]'
+	is => 'rw', isa => 'Maybe[Int]',
 	default => sub {
 		my $self = shift;
 		return $self->config->get('counters', 'flush_interval');

@@ -23,7 +23,7 @@ sub output {
 
 has 'graphit_prefix' => ( is => 'rw', isa => 'Str', lazy => 1,
 	default => sub {
-		$prefix = hostfqdn;
+		my $prefix = hostfqdn;
 		$prefix =~ s/\./_/g;
 		return $prefix;
 	},

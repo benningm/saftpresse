@@ -1,20 +1,11 @@
 package Log::Saftpresse::Output::ElasticSearch;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to write events to elasticsearch
 # VERSION
 
-use base 'Log::Saftpresse::Output';
-
-sub elasticsearch {
-	my $self = shift;
-	if( ! defined $self->{_elasticsearch} ) {
-		#$self->{_elasticsearch} = 
-	}
-	return $self->{_elasticsearch};
-}
+extends 'Log::Saftpresse::Output';
 
 sub output {
 	my ( $self, @events ) = @_;

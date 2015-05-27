@@ -1,7 +1,6 @@
 package Log::Saftpresse::Config;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: configuration option parser for Log::Saftpresse
 # VERSION
@@ -15,7 +14,7 @@ sub ordered_hash_ref {
 }
 
 has 'defaults' => (
-	is => 'rw', isa => 'Tie::IxHash', lazy => 1,
+	is => 'rw', lazy => 1,
 	default => sub {
 		tie my %defaults, "Tie::IxHash";
 		%defaults = (
@@ -50,10 +49,11 @@ has 'defaults' => (
 				},
 			),
 		);
+		return \%defaults;
 	},
 );
 
-has 'config' => ( is => 'rw', isa => 'Maybe[Tie::IxHash]' );
+has 'config' => ( is => 'rw' );
 
 sub load_config {
 	my ( $self, $file ) = @_;
