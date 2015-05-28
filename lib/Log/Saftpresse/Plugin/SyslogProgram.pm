@@ -18,7 +18,6 @@ sub process {
 		$self->cnt->incr_one('by_host', $host);
 		$stash->{'program'} = $program;
 		$self->cnt->incr_one('by_program', $program);
-		( $stash->{'service'} ) = $program =~ /([^\/]+)$/;
 		$stash->{'pid'} = $pid;
 		$stash->{'message'} = $msg;
 		return;

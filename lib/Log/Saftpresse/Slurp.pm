@@ -14,16 +14,15 @@ has 'plugin_prefix' => ( is => 'ro', isa => 'Str',
 	default => 'Log::Saftpresse::Input::',
 );
 
-has 'io_select' => (
-	is => 'ro', isa => 'IO::Select', lazy => 1,
-	default => sub { IO::Select->new; },
-);
+has 'io_select' => ( is => 'rw', isa => 'Maybe[IO::Select]' );
 
-after 'add_plugin' => sub {
-	my ( $self, @plugins ) = @_;
-	foreach my $plugin ( @plugins ) {
-		$self->io_select->add( $plugin->io_handles );
+sub update_io_select {
+	my $self = shift;
+	my $s = IO::Select->new;
+	foreach my $plugin ( @{$self->plugins} ) {
+		$s->add( $plugin->io_handles );
 	}
+	$self->io_select( $s );
 	return;
 };
 
@@ -41,6 +40,8 @@ sub can_read {
 		# just sleep for timeout
 		$sleep = $timeout;
 	}
+
+	$self->update_io_select;
 
 	# use select() when possible
 	if( $self->io_select->count ) {
