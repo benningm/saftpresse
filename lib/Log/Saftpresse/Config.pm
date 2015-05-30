@@ -31,11 +31,8 @@ has 'defaults' => (
 				},
 			),
 			Plugin => ordered_hash_ref(
-				syslog_timestamp => {
-					module => 'SyslogTimestamp',
-				},
-				syslog_program => {
-					module => 'SyslogProgram',
+				syslog => {
+					module => 'SyslogFile',
 				},
 			),
 			CounterOutput => ordered_hash_ref (

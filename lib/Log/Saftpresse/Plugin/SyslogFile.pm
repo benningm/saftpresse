@@ -1,8 +1,8 @@
-package Log::Saftpresse::Plugin::SyslogTimestamp;
+package Log::Saftpresse::Plugin::SyslogFile;
 
 use Moose;
 
-# ABSTRACT: plugin to parse syslog timestamp prefix
+# ABSTRACT: plugin to parse syslog logfile format
 # VERSION
 
 extends 'Log::Saftpresse::Plugin';
@@ -34,10 +34,19 @@ sub process {
 			/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:[\+\-](?:\d{2}):(?:\d{2})|Z) (.+)$/) {
 		$stash->{'time'} = Time::Piece->strptime($date_str, "%Y-%m-%dT%H:%M:%S%z");
 		$stash->{'message'} = $msg;
-		return;
 	}
 
-	return('next');
+	if( my ( $host, $program, $pid, $msg ) = $stash->{'message'} =~
+			/^(\S+) ([^[]+)\[([^\]]+)\]: (.+)$/) {
+		$stash->{'host'} = $host;
+		$self->cnt->incr_one('by_host', $host);
+		$stash->{'program'} = $program;
+		$self->cnt->incr_one('by_program', $program);
+		$stash->{'pid'} = $pid;
+		$stash->{'message'} = $msg;
+	}
+
+	return;
 }
 
 1;

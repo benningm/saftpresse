@@ -13,7 +13,7 @@ sub process {
 	my $service = $stash->{'service'};
 	my $message = $stash->{'message'};
 
-	if( defined $cc && $service eq 'smtpd' &&
+	if( defined $cc && $stash->{'service'} eq 'smtpd' &&
 			$message =~ /client=/ ) {
 		$self->cnt->incr_one('client', $cc);
 	}

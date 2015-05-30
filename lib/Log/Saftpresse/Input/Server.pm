@@ -54,7 +54,6 @@ sub accept_new_connections {
 
 sub handle_new_connection {
 	my ( $self, $conn ) = @_;
-	# NOP (we're just a plain tcp/udp server)
 	return;
 }
 
@@ -82,12 +81,18 @@ sub read_events {
 	my @ready = $self->io_select->can_read(0);
 	foreach my $conn ( @ready )  {
 		if( $conn->eof ) {
+			$self->handle_cleanup_connection( $conn );
 			$self->io_select->remove( $conn );
 			$conn->close;
 		}
 		push( @events, $self->handle_data($conn) );
 	}
 	return @events;
+}
+
+sub handle_cleanup_connection {
+	my ( $self, $conn ) = @_;
+	return;
 }
 
 sub handle_data {

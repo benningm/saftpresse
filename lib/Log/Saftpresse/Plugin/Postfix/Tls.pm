@@ -1,13 +1,11 @@
-package Log::Saftpresse::Plugin::TlsStatistics;
+package Log::Saftpresse::Plugin::Postfix::Tls;
 
-use Moose;
+use Moose::Role;
 
 # ABSTRACT: plugin to gather TLS statistics
 # VERSION
 
-extends 'Log::Saftpresse::Plugin';
-
-sub process {
+sub process_tls {
 	my ( $self, $stash, $notes ) = @_;
 	my $service = $stash->{'service'};
 	my $pid = $stash->{'pid'};

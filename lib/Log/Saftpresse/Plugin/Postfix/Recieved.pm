@@ -1,17 +1,14 @@
-package Log::Saftpresse::Plugin::PostfixRecieved;
+package Log::Saftpresse::Plugin::Postfix::Recieved;
 
-use Moose;
+use Moose::Role;
 
 # ABSTRACT: plugin to gather postfix recieved messages statistics
 # VERSION
 
-extends 'Log::Saftpresse::Plugin';
-
 use Log::Saftpresse::Utils qw( postfix_remote );
 
-sub process {
+sub process_recieved {
 	my ( $self, $stash, $notes ) = @_;
-	if( $stash->{'program'} !~ /^postfix/ ) { return; }
 	my $service = $stash->{'service'};
 	my $message = $stash->{'message'};
 	my $qid = $stash->{'queue_id'};
@@ -22,12 +19,16 @@ sub process {
 		$stash->{'client_host'} = $host;
 		$stash->{'client_ip'} = $addr;
 		$self->cnt->incr_one('total');
-		$self->incr_per_time_one( $stash->{'time'} );
+		if( $self->saftsumm_mode ) {
+			$self->incr_per_time_one( $stash->{'time'} );
+		}
 		$notes->set('client-'.$qid => $host);
 	} elsif( $service eq 'pickup' &&
 			$message =~ /(sender|uid)=/ ) {
 		$self->cnt->incr_one('total');
-		$self->incr_per_time_one( $stash->{'time'} );
+		if( $self->saftsumm_mode ) {
+			$self->incr_per_time_one( $stash->{'time'} );
+		}
 		$notes->set('client-'.$qid => 'pickup');
 	}
 

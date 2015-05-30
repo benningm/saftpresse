@@ -128,10 +128,8 @@ my $output = $output_class->new(
 	top_users_cnt => $opts{'u'},
 );
 
-$analyzer->load_plugin('SyslogTimestamp',
-	module => 'SyslogTimestamp' );
-$analyzer->load_plugin('SyslogProgram',
-	module => 'SyslogProgram' );
+$analyzer->load_plugin('SyslogFile',
+	module => 'SyslogFile' );
 if( defined $opts{'d'} ) {
 	$analyzer->load_plugin('LimitDay',
 		module => 'LimitDay',
@@ -141,43 +139,21 @@ $analyzer->load_plugin('LimitProgram',
 	module => 'LimitProgram',
 	regex => '^'.$syslogName);
 
-$analyzer->load_plugin('PostfixQueueID', module => 'PostfixQueueID');
-$analyzer->load_plugin('PostfixMessages', module => 'PostfixMessages',
-	message_detail => $opts{'verbMsgDetail'},
-	smtpd_warn_detail => $opts{'smtpdWarnDetail'},
-);
-$analyzer->load_plugin('PostfixRejects',
-	module =>'PostfixRejects',
-	message_detail => $opts{'verbMsgDetail'},
-	reject_detail => $opts{'rejectDetail'},
-	ignore_case => $opts{'i'},
-	rej_add_from => $opts{'rejAddFrom'},
-	verp_mung => $opts{'verpMung'},
-);
-$analyzer->load_plugin('PostfixRecieved',
-	module => 'PostfixRecieved');
-$analyzer->load_plugin('PostfixDelivered',
-	module => 'PostfixDelivered',
-	verp_mung => $opts{'verpMung'},
-	ignore_case => $opts{'i'},
-	uucp_mung => $opts{'m'},
-	extended => $opts{'e'},
-	deferred_detail => $opts{'deferralDetail'},
-	message_detail => $opts{'verbMsgDetail'},
+$analyzer->load_plugin('Postfix',
+	module => 'Postfix',
+	saftsumm_mode => 1,
 	bounce_detail => $opts{'bounceDetail'},
+	deferred_detail => $opts{'deferralDetail'},
+	extended => $opts{'e'},
+	ignore_case => $opts{'i'},
+	message_detail => $opts{'verbMsgDetail'},
+	rej_add_from => $opts{'rejAddFrom'},
+	reject_detail => $opts{'rejectDetail'},
+	smtpd_warn_detail => $opts{'smtpdWarnDetail'},
+	uucp_mung => $opts{'m'},
+	verp_mung => $opts{'verpMung'},
 );
-if( defined $opts{'smtpDetail'} && $opts{'smtpDetail'} > 0 ) {
-	$analyzer->load_plugin('PostfixSmtp',
-		module => 'PostfixSmtp');
-}
-if( defined $opts{'smtpdStats'} ) {
-	$analyzer->load_plugin('PostfixSmtpdStats',
-		module => 'PostfixSmtpdStats');
-}
-if( defined $opts{'tlsStats'} ) {
-	$analyzer->load_plugin('TlsStatistics',
-		module => 'TlsStatistics');
-}
+
 if( defined $opts{'geoip'} ) {
 	$analyzer->load_plugin('GeoIP',
 		module => 'GeoIP');

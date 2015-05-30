@@ -1,19 +1,20 @@
-package Log::Saftpresse::Plugin::PostfixMessages;
+package Log::Saftpresse::Plugin::Postfix::Messages;
 
-use Moose;
+use Moose::Role;
 
 # ABSTRACT: plugin to gather postfix warning|fatal|panic messages
 # VERSION
 
-extends 'Log::Saftpresse::Plugin';
-
 use Log::Saftpresse::Utils qw( string_trimmer );
 
-sub process {
+requires 'message_detail';
+requires 'smtpd_warn_detail';
+
+sub process_messages {
 	my ( $self, $stash ) = @_;
 	my $service = $stash->{'service'};
-	my $message_detail = $self->{'message_detail'};
-	my $smtpd_warn_detail = $self->{'smtpd_warn_detail'};
+	my $message_detail = $self->message_detail;
+	my $smtpd_warn_detail = $self->smtpd_warn_detail;
 
 	if( $service eq 'master' ) { # gather all master messages
 		$self->cnt->incr_one('master', $stash->{'message'});

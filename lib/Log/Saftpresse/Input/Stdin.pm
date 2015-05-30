@@ -25,7 +25,8 @@ has 'stdin' => (
 	handles => {
 		'eof' => 'eof',
 	},
-}
+);
+
 # we only have one handle, just alias
 *io_handles = \&stdin;
 

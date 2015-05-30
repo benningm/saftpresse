@@ -7,6 +7,8 @@ use Moose;
 
 use Log::Saftpresse::Counters;
 
+has 'name' => ( is => 'ro', isa => 'Str', required => 1 );
+
 has 'counters' => (
 	is => 'ro', isa => 'Log::Saftpresse::Counters', lazy => 1,
 	default => sub {

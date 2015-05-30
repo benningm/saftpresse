@@ -1,17 +1,20 @@
-package Log::Saftpresse::Plugin::PostfixRejects;
+package Log::Saftpresse::Plugin::Postfix::Rejects;
 
-use Moose;
+use Moose::Role;
 
 # ABSTRACT: plugin to gather postfix reject statistics
 # VERSION
 
-extends 'Log::Saftpresse::Plugin';
-
 use Log::Saftpresse::Utils qw(gimme_domain verp_mung string_trimmer );
 
-sub process {
+requires 'message_detail';
+requires 'reject_detail';
+requires 'ignore_case';
+requires 'rej_add_from';
+requires 'verp_mung';
+
+sub process_rejects {
 	my ( $self, $stash ) = @_;
-	if( $stash->{'program'} !~ /^postfix/ ) { return; }
 	my $service = $stash->{'service'};
 	my $message = $stash->{'message'};
 
@@ -23,14 +26,16 @@ sub process {
 		$stash->{'reject_reason'} = $rejReas;
 
 		$rejRmdr =~ s/( from \S+?)?; from=<.*$//
-			unless($self->{'message_detail'});
-		$rejRmdr = string_trimmer($rejRmdr, 64, $self->{'message_detail'});
+			unless( $self->message_detail );
+		$rejRmdr = string_trimmer($rejRmdr, 64, $self->message_detail);
 		
 		if( $self->{'reject_detail'} != 0 ) {
-			$self->cnt->incr_one($rejSubTyp, $service, $rejReas, $rejRmdr);
+			$self->cnt->incr_one('reject', $rejSubTyp, $service, $rejReas, $rejRmdr);
 		}
-		$self->cnt->incr_one( 'total', $rejSubTyp );
-		$self->incr_per_time_one( $stash->{'time'} );
+		$self->cnt->incr_one('reject', 'total', $rejSubTyp );
+		if( $self->saftsumm_mode ) {
+			$self->incr_per_time_one( $stash->{'time'} );
+		}
 	}
 
 	if( my ($type, $reject_message) = $message
@@ -44,10 +49,10 @@ sub process {
 
 sub incr_per_time_one {
 	my ( $self, $time ) = @_;
-	$self->cnt->incr_one( 'per_hr', $time->hour );
-	$self->cnt->incr_one( 'per_mday', $time->mday );
-	$self->cnt->incr_one( 'per_wday', $time->wday );
-	$self->cnt->incr_one( 'per_day', $time->ymd );
+	$self->cnt->incr_one( 'reject', 'per_hr', $time->hour );
+	$self->cnt->incr_one( 'reject', 'per_mday', $time->mday );
+	$self->cnt->incr_one( 'reject', 'per_wday', $time->wday );
+	$self->cnt->incr_one( 'reject', 'per_day', $time->ymd );
 	return;
 }
 
@@ -58,12 +63,14 @@ sub proc_smtpd_reject {
     my ($from, $to);
     my $rejAddFrom = 0;
 
-    $self->cnt->incr_one( 'total', $type );
-    $self->incr_per_time_one( $stash->{'time'} );
+    $self->cnt->incr_one( 'reject', 'total', $type );
+    if( $self->saftsumm_mode ) {
+      $self->incr_per_time_one( $stash->{'time'} );
+    }
 
     # Hate the sub-calling overhead if we're not doing reject details
     # anyway, but this is the only place we can do this.
-    return if( $self->{'reject_detail'} == 0);
+    return if( $self->reject_detail == 0);
 
     # This could get real ugly!
 
@@ -74,7 +81,7 @@ sub proc_smtpd_reject {
 
     # Next: get the reject "reason"
     $rejReas = $rejRmdr;
-    unless(defined( $self->{'message_detail'} )) {
+    unless(defined( $self->message_detail )) {
 	if($rejTyp eq "RCPT" || $rejTyp eq "DATA" || $rejTyp eq "CONNECT") {	# special treatment :-(
 	    # If there are "<>"s immediately following the reject code, that's
 	    # an email address or HELO string.  There can be *anything* in
@@ -105,16 +112,16 @@ sub proc_smtpd_reject {
     (($from) = $rejRmdr =~ /from=<([^>]+)>/) || ($from = "<>");
 
     if(defined($from)) {
-	$rejAddFrom = $self->{'rej_add_from'};
-        $from = verp_mung( $self->{'verp_mung'}, $from);
-	$from = lc($from) if($self->{'ignore_case'});
+	$rejAddFrom = $self->rej_add_from;
+        $from = verp_mung( $self->verp_mung, $from);
+	$from = lc($from) if($self->ignore_case);
     }
 
     # stash in "triple-subscripted-array"
     if($rejReas =~ m/^Sender address rejected:/) {
 	# Sender address rejected: Domain not found
 	# Sender address rejected: need fully-qualified address
-        $self->cnt->incr_one($type, $rejTyp, $rejReas, $from);
+        $self->cnt->incr_one( 'reject', $type, $rejTyp, $rejReas, $from);
     } elsif($rejReas =~ m/^(Recipient address rejected:|User unknown( |$))/) {
 	# Recipient address rejected: Domain not found
 	# Recipient address rejected: need fully-qualified address
@@ -124,24 +131,24 @@ sub proc_smtpd_reject {
 	if($rejAddFrom) {
 	    $rejData .= "  (" . ($from? $from : gimme_domain($rejFrom)) . ")";
 	}
-        $self->cnt->incr_one($type, $rejTyp, $rejReas, $rejData);
+        $self->cnt->incr_one( 'reject', $type, $rejTyp, $rejReas, $rejData);
     } elsif($rejReas =~ s/^.*?\d{3} (Improper use of SMTP command pipelining);.*$/$1/) {
 	# Was an IPv6 problem here
 	my ($src) = $message =~ /^.+? from (\S+?):.*$/;
-        $self->cnt->incr_one($type, $rejTyp, $rejReas, $src);
+        $self->cnt->incr_one( 'reject', $type, $rejTyp, $rejReas, $src);
     } elsif($rejReas =~ s/^.*?\d{3} (Message size exceeds fixed limit);.*$/$1/) {
 	my $rejData = gimme_domain($rejFrom);
 	$rejData .= "  ($from)" if($rejAddFrom);
-        $self->cnt->incr_one($type, $rejTyp, $rejReas, $rejData);
+        $self->cnt->incr_one( 'reject', $type, $rejTyp, $rejReas, $rejData);
     } elsif($rejReas =~ s/^.*?\d{3} (Server configuration (?:error|problem));.*$/(Local) $1/) {
 	my $rejData = gimme_domain($rejFrom);
 	$rejData .= "  ($from)" if($rejAddFrom);
-        $self->cnt->incr_one($type, $rejTyp, $rejReas, $rejData);
+        $self->cnt->incr_one( 'reject', $type, $rejTyp, $rejReas, $rejData);
     } else {
 #	print STDERR "dbg: unknown reject reason $rejReas !\n\n";
 	my $rejData = gimme_domain($rejFrom);
 	$rejData .= "  ($from)" if($rejAddFrom);
-        $self->cnt->incr_one($type, $rejTyp, $rejReas, $rejData);
+        $self->cnt->incr_one( 'reject', $type, $rejTyp, $rejReas, $rejData);
     }
 }
 

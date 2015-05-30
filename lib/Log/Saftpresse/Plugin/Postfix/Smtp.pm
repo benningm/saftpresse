@@ -1,13 +1,11 @@
-package Log::Saftpresse::Plugin::PostfixSmtp;
+package Log::Saftpresse::Plugin::Postfix::Smtp;
 
-use Moose;
+use Moose::Role;
 
 # ABSTRACT: plugin to gather postfix smtp client statistics
 # VERSION
 
-extends 'Log::Saftpresse::Plugin';
-
-sub process {
+sub process_smtp {
 	my ( $self, $stash ) = @_;
 	my $service = $stash->{'service'};
 	if( $service ne 'smtp' ) { return; }
