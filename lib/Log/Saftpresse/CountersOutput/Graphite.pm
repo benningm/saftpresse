@@ -21,7 +21,7 @@ sub output {
 	return;
 }
 
-has 'graphit_prefix' => ( is => 'rw', isa => 'Str', lazy => 1,
+has 'prefix' => ( is => 'rw', isa => 'Str', lazy => 1,
 	default => sub {
 		my $prefix = hostfqdn;
 		$prefix =~ s/\./_/g;
@@ -67,7 +67,7 @@ sub _output_graphit {
 	my ( $self, $data ) = @_;
 	my $now = time;
 	
-	$self->_proc_hash($self->graphit_prefix, $now , $data);
+	$self->_proc_hash($self->prefix, $now , $data);
 
 	return;
 }
