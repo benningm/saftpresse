@@ -17,7 +17,7 @@ sub process_messages {
 	my $smtpd_warn_detail = $self->smtpd_warn_detail;
 
 	if( $service eq 'master' ) { # gather all master messages
-		$self->cnt->incr_one('master', $stash->{'message'});
+		$self->incr_host_one( $stash, 'master', $stash->{'message'});
 		return;
 	}
 
@@ -27,7 +27,7 @@ sub process_messages {
 	       			$smtpd_warn_detail == 0 ) {
 			return;
 		}
-		$self->cnt->incr_one($level, $service, $msg);
+		$self->incr_host_one( $stash, $level, $service, $msg);
 		$stash->{'postfix_level'} = $level;
 	} 
 

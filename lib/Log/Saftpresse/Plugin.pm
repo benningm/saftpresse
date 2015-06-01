@@ -14,8 +14,8 @@ has 'counters' => (
 	default => sub {
 		 Log::Saftpresse::Counters->new;
 	},
+	handles => [ 'incr', 'incr_one', 'incr_max' ],
 );
-*cnt = \&counters;
 
 sub process {
 	my ( $self, $stash, $notes ) = @_;

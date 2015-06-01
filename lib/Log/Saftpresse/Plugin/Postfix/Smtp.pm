@@ -12,13 +12,13 @@ sub process_smtp {
 
 	# Was an IPv6 problem here
 	if($stash->{'message'} =~ /^connect to (\S+?): ([^;]+); address \S+ port.*$/) {
-		$self->cnt->incr_one('messages', lc($2), $1);
+		$self->incr_host_one( $stash, 'messages', lc($2), $1);
 	} elsif($stash->{'message'} =~ /^connect to ([^[]+)\[\S+?\]: (.+?) \(port \d+\)$/) {
-		$self->cnt->incr_one('messages', lc($2), $1);
+		$self->incr_host_one( $stash, 'messages', lc($2), $1);
 	}
 
 	# TODO: is it possible to count connections?
-	#$self->cnt->incr_one('connections');
+	#$self->incr_host_one( $stash, 'connections');
 
 	return;
 }

@@ -6,16 +6,17 @@ use Moose;
 # VERSION
 
 extends 'Log::Saftpresse::Plugin';
+with 'Log::Saftpresse::Plugin::Role::PerHostCounters';
 
 sub process {
 	my ( $self, $stash ) = @_;
-	my $cc = $stash->{'geoip_cc'};
+	my $cc = $stash->{'geoip_cc'};;
 	my $service = $stash->{'service'};
 	my $message = $stash->{'message'};
 
 	if( defined $cc && $stash->{'service'} eq 'smtpd' &&
 			$message =~ /client=/ ) {
-		$self->cnt->incr_one('client', $cc);
+		$self->incr_host_one( $stash, 'client', $cc);
 	}
 
 	return;

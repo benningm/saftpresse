@@ -24,6 +24,8 @@ has 'extended' => ( is => 'rw', isa => 'Bool', default => 0 );
 has 'uucp_mung' => ( is => 'rw', isa => 'Bool', default => 0 );
 has 'verp_mung' => ( is => 'rw', isa => 'Maybe[Int]' );
 
+with 'Log::Saftpresse::Plugin::Role::PerHostCounters';
+
 with 'Log::Saftpresse::Plugin::Postfix::Service';
 with 'Log::Saftpresse::Plugin::Postfix::QueueID';
 with 'Log::Saftpresse::Plugin::Postfix::Messages';

@@ -25,10 +25,10 @@ sub process_tls {
 		}
 		@$stash{keys %$tls_params} = values %$tls_params;
 		if( $service eq 'smtpd' && $message =~ /^client=/ ) {
-			$self->incr_tls_stats($service, 'messages', $tls_params);
+			$self->incr_tls_stats( $stash, $tls_params, 'tls_msg', $service);
 		} elsif( $service eq 'smtp' &&
 		       		$message =~ /status=(sent|bounced|deferred)/ ) {
-			$self->incr_tls_stats($service, 'messages', $tls_params);
+			$self->incr_tls_stats( $stash, $tls_params, 'tls_msg', $service);
 			$notes->remove($service.'-tls-'.$pid);
 			# postfix/smtp closes the TLS connection after each delivery
 			# see postfix-users maillist (2015-02-05)
@@ -43,7 +43,7 @@ sub process_tls {
 			defined($tls_params = $notes->get($service.'-tls-'.$queue_id))
 			) {
 		@$stash{keys %$tls_params} = values %$tls_params;
-		$self->incr_tls_stats($service, 'messages', $tls_params);
+		$self->incr_tls_stats( $stash, $tls_params, 'tls_msg', $service);
 	}
 
 	if( my ($tlsLevel,$tlsHost, $tlsAddr, $tlsProto, $tlsCipher, $tlsKeylen) =
@@ -54,7 +54,7 @@ sub process_tls {
 			'tls_chipher' => $tlsCipher,
 			'tls_keylen' => $tlsKeylen,
 		};
-		$self->incr_tls_stats($service, 'connections', $tls_params);
+		$self->incr_tls_stats( $stash, $tls_params, 'tls_conn', $service);
 		@$stash{keys %$tls_params} = values %$tls_params;
 		$notes->set($service.'-tls-'.$pid, $tls_params);
 	}
@@ -63,16 +63,13 @@ sub process_tls {
 }
 
 sub incr_tls_stats {
-	my $self = shift;
-	my $cnt = $self->cnt;
-	my $tls_params = pop;
-	my @path = @_;
+	my ( $self, $stash, $tls_params, @path ) = @_;
 
-	$self->cnt->incr_one(@path, 'total');
-	$self->cnt->incr_one(@path, 'level', $tls_params->{'tls_level'});
-	$self->cnt->incr_one(@path, 'protocol', $tls_params->{'tls_proto'});
-	$self->cnt->incr_one(@path, 'cipher', $tls_params->{'tls_chipher'});
-	$self->cnt->incr_one(@path, 'keylen', $tls_params->{'tls_keylen'});
+	$self->incr_host_one( $stash, @path, 'total');
+	$self->incr_host_one( $stash, @path, 'level', $tls_params->{'tls_level'});
+	$self->incr_host_one( $stash, @path, 'proto', $tls_params->{'tls_proto'});
+	$self->incr_host_one( $stash, @path, 'cipher', $tls_params->{'tls_chipher'});
+	$self->incr_host_one( $stash, @path, 'keylen', $tls_params->{'tls_keylen'});
 
 	return;
 }

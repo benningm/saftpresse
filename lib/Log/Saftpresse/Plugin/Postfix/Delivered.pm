@@ -65,26 +65,26 @@ sub process_to {
 	if($status eq 'sent') {
 		# was it actually forwarded, rather than delivered?
 		if( defined $stash->{'forwarded'}) {
-		    $self->cnt->incr_one('forwarded');
+		    $self->incr_host_one($stash, 'forwarded');
 		    return;
 		}
-		$self->cnt->incr_one('sent', 'total');
-		$self->cnt->incr_one('sent', 'by_domain', $domAddr);
-		$self->cnt->incr('sent', 'delay', 'by_domain', $domAddr, $delay);
-		$self->cnt->incr_max('sent', 'max_delay', 'by_domain', $domAddr, $delay);
-		$self->cnt->incr_one('sent', 'by_rcpt', $addr);
+		$self->incr_host_one( $stash, 'sent', 'total');
+		$self->incr_host_one( $stash, 'sent', 'by_domain', $domAddr);
+		$self->incr_host( $stash, 'sent', 'delay', 'by_domain', $domAddr, $delay);
+		$self->incr_host_max( $stash, 'sent', 'max_delay', 'by_domain', $domAddr, $delay);
+		$self->incr_host_one( $stash, 'sent', 'by_rcpt', $addr);
 		if( $self->saftsumm_mode ) {
-			$self->cnt->incr_one('sent', 'per_hr', $time->hour);
-			$self->cnt->incr_one('sent', 'per_day', $time->ymd);
+			$self->incr_host_one( $stash, 'sent', 'per_hr', $time->hour);
+			$self->incr_host_one( $stash, 'sent', 'per_day', $time->ymd);
 		}
 
 		if( my $size = $notes->get('size-'.$qid) ) {
 			$stash->{'size'} = $size;
-			$self->cnt->incr('sent', 'size', 'by_domain', $domAddr, $size);
-			$self->cnt->incr('sent', 'size', 'by_rcpt', $addr, $size);
-			$self->cnt->incr('sent', 'size', 'total', $size);
+			$self->incr_host( $stash, 'sent', 'size', 'by_domain', $domAddr, $size);
+			$self->incr_host( $stash, 'sent', 'size', 'by_rcpt', $addr, $size);
+			$self->incr_host( $stash, 'sent', 'size', 'total', $size);
 		} else {
-			$self->cnt->incr_one('sent', 'size', 'no_size');
+			$self->incr_host_one( $stash, 'sent', 'size', 'no_size');
 		}
 		# [benning] hum?
 		# push(@{$msgDetail{$qid}}, "(sender not in log)") if($opts{'e'});
@@ -97,15 +97,15 @@ sub process_to {
 			$deferredReas =~ s/^\d{3} //;
 			$deferredReas =~ s/^connect to //;
 		    }
-		    $self->cnt->incr_one('deferred', $stash->{'service'}, $deferredReas);
+		    $self->incr_host_one( $stash, 'deferred', $stash->{'service'}, $deferredReas);
 		}
-		$self->cnt->incr_one('deferred', 'total');
+		$self->incr_host_one( $stash, 'deferred', 'total');
 		if( $self->saftsumm_mode ) {
-			$self->cnt->incr_one('deferred', 'per_hr', $time->hour);
-			$self->cnt->incr_one('deferred', 'per_day', $time->ymd);
+			$self->incr_host_one( $stash, 'deferred', 'per_hr', $time->hour);
+			$self->incr_host_one( $stash, 'deferred', 'per_day', $time->ymd);
 		}
-		$self->cnt->incr_one('deferred', 'by_domain', $domAddr);
-		$self->cnt->incr_max('deferred', 'max_delay', 'by_domain', $domAddr, $delay);
+		$self->incr_host_one( $stash, 'deferred', 'by_domain', $domAddr);
+		$self->incr_host_max( $stash, 'deferred', 'max_delay', 'by_domain', $domAddr, $delay);
 	} elsif($status eq 'bounced') {
 		if( $self->bounce_detail > 0 ) {
 			my ($bounceReas) = $message =~ /, status=bounced \((.+)\)/;
@@ -113,12 +113,12 @@ sub process_to {
 				$bounceReas = said_string_trimmer($bounceReas, 66);
 				$bounceReas =~ s/^\d{3} //;
 			}
-			$self->cnt->incr_one('bounced', $relay, $bounceReas);
+			$self->incr_host_one( $stash, 'bounced', $relay, $bounceReas);
 		}
-		$self->cnt->incr_one('bounced', 'total');
+		$self->incr_host_one( $stash, 'bounced', 'total');
 		if( $self->saftsumm_mode ) {
-			$self->cnt->incr_one('bounced', 'per_hr', $time->hour);
-			$self->cnt->incr_one('bounced', 'per_day', $time->ymd);
+			$self->incr_host_one( $stash, 'bounced', 'per_hr', $time->hour);
+			$self->incr_host_one( $stash, 'bounced', 'per_day', $time->ymd);
 		}
 	}
 }
@@ -143,14 +143,14 @@ sub process_from {
 		    $domAddr = $client eq "pickup"? $addr : $client;
 		}
 
-		$self->cnt->incr_one('recieved', 'total');
-		$self->cnt->incr('recieved', 'size', 'total', $size);
+		$self->incr_host_one( $stash, 'recieved', 'total');
+		$self->incr_host( $stash, 'recieved', 'size', 'total', $size);
 
-		$self->cnt->incr_one('recieved', 'by_domain', $domAddr);
-		$self->cnt->incr('recieved', 'size', 'by_domain', $domAddr, $size);
+		$self->incr_host_one( $stash, 'recieved', 'by_domain', $domAddr);
+		$self->incr_host( $stash, 'recieved', 'size', 'by_domain', $domAddr, $size);
 
-		$self->cnt->incr_one('recieved', 'by_sender', $addr);
-		$self->cnt->incr('recieved', 'size', 'by_sender', $addr, $size);
+		$self->incr_host_one( $stash, 'recieved', 'by_sender', $addr);
+		$self->incr_host( $stash, 'recieved', 'size', 'by_sender', $addr, $size);
 	}
 	return;
 }

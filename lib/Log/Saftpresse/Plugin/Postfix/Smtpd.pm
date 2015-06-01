@@ -40,19 +40,19 @@ sub process_smtpd {
 		$stash->{'client'} = $host;
 
 		if( $self->saftsumm_mode ) {
-			$self->cnt->incr_one('per_hr', $time->hour);
-			$self->cnt->incr_one('per_day', $time->ymd);
-			$self->cnt->incr('busy', 'per_hr', $time->hour, $sec);
-			$self->cnt->incr('busy', 'per_day', $time->ymd, $sec);
-			$self->cnt->incr_max('busy', 'max_per_hr', $time->hour, $sec);
-			$self->cnt->incr_max('busy', 'max_per_day', $time->ymd, $sec);
+			$self->incr_host_one( $stash, 'conn', 'per_hr', $time->hour);
+			$self->incr_host_one( $stash, 'conn', 'per_day', $time->ymd);
+			$self->incr_host( $stash, 'conn', 'busy', 'per_hr', $time->hour, $sec);
+			$self->incr_host( $stash, 'conn', 'busy', 'per_day', $time->ymd, $sec);
+			$self->incr_host_max( $stash, 'conn', 'busy', 'max_per_hr', $time->hour, $sec);
+			$self->incr_host_max( $stash, 'conn', 'busy', 'max_per_day', $time->ymd, $sec);
+			$self->incr_host_max( $stash, 'conn', 'busy', 'max_per_domain', $host, $sec);
 		}
-		$self->cnt->incr_one('per_domain', $host);
-		$self->cnt->incr('busy', 'per_domain', $host, $sec);
-		$self->cnt->incr_max('busy', 'max_per_domain', $host, $sec);
+		$self->incr_host_one( $stash, 'conn', 'per_domain', $host);
+		$self->incr_host( $stash, 'conn', 'busy', 'per_domain', $host, $sec);
 
-		$self->cnt->incr_one('total');
-		$self->cnt->incr('busy', 'total', $sec);
+		$self->incr_host_one( $stash, 'conn', 'total');
+		$self->incr_host( $stash, 'conn', 'busy', 'total', $sec);
 	} 
 
 	return;

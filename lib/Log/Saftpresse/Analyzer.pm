@@ -48,7 +48,7 @@ sub get_counters {
 	my ( $self, $name ) = @_;
 	my $plugin = $self->get_plugin( $name );
 	if( defined $plugin ) {
-		return( $plugin->cnt );
+		return( $plugin->counters );
 	}
 	return;
 }
@@ -58,7 +58,7 @@ sub get_all_counters {
 	my %values;
 
 	%values = map {
-		$_->name => $_->cnt
+		$_->name => $_->counters
 	} @{$self->plugins};
 
 	return \%values;

@@ -39,9 +39,9 @@ sub process {
 	if( my ( $host, $program, $pid, $msg ) = $stash->{'message'} =~
 			/^(\S+) ([^[]+)\[([^\]]+)\]: (.+)$/) {
 		$stash->{'host'} = $host;
-		$self->cnt->incr_one('by_host', $host);
+		$self->incr_one('by_host', $host);
 		$stash->{'program'} = $program;
-		$self->cnt->incr_one('by_program', $program);
+		$self->incr_one('by_program', $program);
 		$stash->{'pid'} = $pid;
 		$stash->{'message'} = $msg;
 	}

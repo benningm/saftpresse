@@ -39,13 +39,7 @@ has 'outputs' => (
 	default => sub { Log::Saftpresse::Outputs->new },
 );
 
-has 'flush_interval' => (
-	is => 'rw', isa => 'Maybe[Int]',
-	default => sub {
-		my $self = shift;
-		return $self->config->get('counters', 'flush_interval');
-	},
-);
+has 'flush_interval' => ( is => 'rw', isa => 'Maybe[Int]' );
 
 has '_last_flush_counters' => (
 	is => 'rw', isa => 'Int',
@@ -61,7 +55,7 @@ sub init {
 		$config->get('logging', 'level'),
 		$config->get('logging', 'file'),
 	);
-
+	$self->flush_interval( $config->get('counters', 'flush_interval') );
 	$self->slurp->load_config( $config->get_node('Input') );
 	$self->analyzer->load_config( $config->get_node('Plugin') );
 	$self->counter_outputs->load_config( $config->get_node('CounterOutput') );

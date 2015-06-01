@@ -18,16 +18,16 @@ sub process_recieved {
 		my ( $host, $addr ) = postfix_remote( $1 );
 		$stash->{'client_host'} = $host;
 		$stash->{'client_ip'} = $addr;
-		$self->cnt->incr_one('total');
+		$self->incr_host_one('incoming', 'total');
 		if( $self->saftsumm_mode ) {
-			$self->incr_per_time_one( $stash->{'time'} );
+			$self->incr_per_time_one( $stash );
 		}
 		$notes->set('client-'.$qid => $host);
 	} elsif( $service eq 'pickup' &&
 			$message =~ /(sender|uid)=/ ) {
-		$self->cnt->incr_one('total');
+		$self->incr_host_one('incoming', 'total');
 		if( $self->saftsumm_mode ) {
-			$self->incr_per_time_one( $stash->{'time'} );
+			$self->incr_per_time_one( $stash );
 		}
 		$notes->set('client-'.$qid => 'pickup');
 	}
@@ -36,11 +36,12 @@ sub process_recieved {
 }
 
 sub incr_per_time_one {
-	my ( $self, $time ) = @_;
-	$self->cnt->incr_one( 'per_hr', $time->hour );
-	$self->cnt->incr_one( 'per_mday', $time->mday );
-	$self->cnt->incr_one( 'per_wday', $time->wday );
-	$self->cnt->incr_one( 'per_day', $time->ymd );
+	my ( $self, $stash ) = @_;
+	my $time = $stash->{'time'};
+	$self->incr_host_one( $stash, 'incoming', 'per_hr', $time->hour );
+	$self->incr_host_one( $stash, 'incoming', 'per_mday', $time->mday );
+	$self->incr_host_one( $stash, 'incoming', 'per_wday', $time->wday );
+	$self->incr_host_one( $stash, 'incoming', 'per_day', $time->ymd );
 	return;
 }
 
