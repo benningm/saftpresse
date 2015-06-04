@@ -16,16 +16,33 @@ sub process_tls {
 		return;
 	}
 
+	if( my ($tlsLevel,$tlsHost, $tlsAddr, $tlsProto, $tlsCipher, $tlsKeylen) =
+		$message =~ /^(\S+) TLS connection established (?:from|to) ([^\[]+)\[([^\]]+)\]:(?:\d+:)? (\S+) with cipher (\S+) \((\d+)\/(\d+) bits\)/ ) {
+		my $tls_params = {
+			'tls_level' => $tlsLevel,
+			'tls_proto' => $tlsProto,
+			'tls_chipher' => $tlsCipher,
+			'tls_keylen' => $tlsKeylen,
+		};
+		$self->incr_tls_stats( $stash, $tls_params, 'tls_conn', $service);
+		@$stash{keys %$tls_params} = values %$tls_params;
+		$notes->set($service.'-tls-'.$pid, $tls_params);
+
+		return;
+	}
+
 	my $tls_params = $notes->get($service.'-tls-'.$pid);
 	if( defined $tls_params ) {
-		if( $service eq 'smtpd' &&
-		       		$message =~ /^(lost connection|disconnect|connect from)/ ) {
-			$notes->remove($service.'-tls-'.$pid);
-			return;
-		}
-		@$stash{keys %$tls_params} = values %$tls_params;
-		if( $service eq 'smtpd' && $message =~ /^client=/ ) {
-			$self->incr_tls_stats( $stash, $tls_params, 'tls_msg', $service);
+		if( $service eq 'smtpd' ) {
+			if( $message =~ /^connect from/ ) { # we missed the disconnect?
+				$notes->remove($service.'-tls-'.$pid);
+				return;
+			} elsif( $message =~ /^disconnect/ ) {
+				$notes->remove($service.'-tls-'.$pid);
+			} elsif( $message =~ /^client=/ ) {
+				$self->incr_tls_stats( $stash, $tls_params, 'tls_msg', $service);
+			}
+			@$stash{keys %$tls_params} = values %$tls_params;
 		} elsif( $service eq 'smtp' &&
 		       		$message =~ /status=(sent|bounced|deferred)/ ) {
 			$self->incr_tls_stats( $stash, $tls_params, 'tls_msg', $service);
@@ -38,25 +55,10 @@ sub process_tls {
 				$notes->set($service.'-tls-'.$queue_id, $tls_params);
 			}
 		}
-		return;
 	} elsif( defined $queue_id &&
 			defined($tls_params = $notes->get($service.'-tls-'.$queue_id))
 			) {
 		@$stash{keys %$tls_params} = values %$tls_params;
-		$self->incr_tls_stats( $stash, $tls_params, 'tls_msg', $service);
-	}
-
-	if( my ($tlsLevel,$tlsHost, $tlsAddr, $tlsProto, $tlsCipher, $tlsKeylen) =
-		$message =~ /^(\S+) TLS connection established (?:from|to) ([^\[]+)\[([^\]]+)\]:(?:\d+:)? (\S+) with cipher (\S+) \((\d+)\/(\d+) bits\)/ ) {
-		my $tls_params = {
-			'tls_level' => $tlsLevel,
-			'tls_proto' => $tlsProto,
-			'tls_chipher' => $tlsCipher,
-			'tls_keylen' => $tlsKeylen,
-		};
-		$self->incr_tls_stats( $stash, $tls_params, 'tls_conn', $service);
-		@$stash{keys %$tls_params} = values %$tls_params;
-		$notes->set($service.'-tls-'.$pid, $tls_params);
 	}
 
 	return;

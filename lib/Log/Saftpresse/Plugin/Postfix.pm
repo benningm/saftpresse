@@ -24,7 +24,7 @@ has 'extended' => ( is => 'rw', isa => 'Bool', default => 0 );
 has 'uucp_mung' => ( is => 'rw', isa => 'Bool', default => 0 );
 has 'verp_mung' => ( is => 'rw', isa => 'Maybe[Int]' );
 
-with 'Log::Saftpresse::Plugin::Role::PerHostCounters';
+with 'Log::Saftpresse::Plugin::Role::CounterUtils';
 
 with 'Log::Saftpresse::Plugin::Postfix::Service';
 with 'Log::Saftpresse::Plugin::Postfix::QueueID';
@@ -45,17 +45,17 @@ sub process {
 	if( ! defined $program || $program !~ /^postfix\// ) {
 		return;
 	}
-	$self->process_service( $stash );
+	$self->process_service( $stash, $notes );
 	if( ! defined $stash->{'service'} ) {
 		return;
 	}
-	$self->process_queueid( $stash );
+	$self->process_queueid( $stash, $notes );
 
-	$self->process_messages( $stash );
-	$self->process_rejects( $stash );
+	$self->process_messages( $stash, $notes );
+	$self->process_rejects( $stash, $notes );
 	$self->process_recieved( $stash, $notes );
 	$self->process_delivered( $stash, $notes );
-	$self->process_smtp( $stash );
+	$self->process_smtp( $stash, $notes );
 	$self->process_smtpd( $stash, $notes );
 	$self->process_tls( $stash, $notes );
 

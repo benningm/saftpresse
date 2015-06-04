@@ -6,7 +6,7 @@ use Moose;
 # VERSION
 
 extends 'Log::Saftpresse::Plugin';
-with 'Log::Saftpresse::Plugin::Role::PerHostCounters';
+with 'Log::Saftpresse::Plugin::Role::CounterUtils';
 
 sub process {
 	my ( $self, $stash ) = @_;

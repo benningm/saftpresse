@@ -18,14 +18,14 @@ sub process_recieved {
 		my ( $host, $addr ) = postfix_remote( $1 );
 		$stash->{'client_host'} = $host;
 		$stash->{'client_ip'} = $addr;
-		$self->incr_host_one('incoming', 'total');
+		$self->incr_host_one( $stash, 'incoming', 'total');
 		if( $self->saftsumm_mode ) {
 			$self->incr_per_time_one( $stash );
 		}
 		$notes->set('client-'.$qid => $host);
 	} elsif( $service eq 'pickup' &&
 			$message =~ /(sender|uid)=/ ) {
-		$self->incr_host_one('incoming', 'total');
+		$self->incr_host_one( $stash, 'incoming', 'total');
 		if( $self->saftsumm_mode ) {
 			$self->incr_per_time_one( $stash );
 		}

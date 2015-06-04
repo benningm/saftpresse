@@ -7,19 +7,36 @@ use Moose;
 
 extends 'Log::Saftpresse::Plugin';
 
+has 'address_fields' => ( is => 'ro', isa => 'Str', default => 'client_ip' );
+
+has '_address_fields' => ( is => 'ro', isa => 'ArrayRef', lazy => 1,
+	default => sub {
+		my $self = shift;
+		return( [ split(/\s*,\s*/, $self->address_fields) ] );
+	},
+);
+
 use Geo::IP;
 
 sub process {
 	my ( $self, $stash ) = @_;
-	my $ip = $stash->{'client_ip'};
+	my $addr;
 
-	if( defined $ip ) {
-		my $cc = $self->_geoip->country_code_by_addr( $ip );
-		if( defined $cc ) {
-			$stash->{'geoip_cc'} = $cc;
-		} else {
-			$stash->{'geoip_cc'} = 'unknown';
+	foreach my $field ( @{$self->_address_fields} ) {
+		if( defined $stash->{$field} ) {
+			$addr = $stash->{'client_ip'};
 		}
+	}
+
+	if( ! defined $addr ) {
+		return;
+	}
+
+	my $cc = $self->_geoip->country_code_by_addr( $addr );
+	if( defined $cc ) {
+		$stash->{'geoip_cc'} = $cc;
+	} else {
+		$stash->{'geoip_cc'} = 'unknown';
 	}
 
 	return;

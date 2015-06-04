@@ -18,6 +18,8 @@ sub process {
 	$line =~ s/[\r\n]*$//;
 	my $event = $self->parse_rfc3164_line( $line );
 	if( defined $event ) {
+		$self->incr_one('events', 'by_host', $event->{'host'} );
+		$self->incr_one('events', 'by_program', $event->{'program'} );
 		@$stash{ keys %$event } = values %$event;
 	}
 
