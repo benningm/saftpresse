@@ -5,6 +5,71 @@ use Moose;
 # ABSTRACT: plugin to parse amavisd-new logs
 # VERSION
 
+=head1 Description
+
+This plugin parses Amavis log lines. Currently only JSON format log lines are parsed.
+
+=head1 Synopsis
+
+  <Plugin amavis>
+    module = "Amavis"
+    test_stats = 1
+  </Plugin>
+
+=head1 Options
+
+=over
+
+=item test_stats (default: 1)
+
+Enable/disable generation of a counter per spam/ham test.
+
+=back
+
+=head1 Configure Amavis/Rsyslog for JSON output
+
+First increase the maximum message size in rsyslog:
+
+  $MaxMessageSize 32k
+
+Then configure your $log_templ in amavisd.conf for JSON output:
+
+  $logline_maxlen = ( 32*1024 ) - 50; # 32k max message size, keep 50 bytes for syslog
+  $log_templ = <<'EOD';
+  [:report_json]
+  EOD
+
+=head1 Input
+
+This plugin expects a log line with
+
+  'program' => 'amavis'
+
+and an amavis report_json message like
+
+  'message' => '(04529-01) {"@timestamp":"2015-06-12T04:51:48.725Z","action":["PASS"],...}'
+
+=head1 Output
+
+The plugin will outout the field log_id and will copy all fields
+in the JSON data structure to the event.
+
+=head1 Counters
+
+The plugin will create the following counters:
+
+  <host>.total
+  <host>.content_type.<content_type>
+  <host>.action.<action>
+  <host>.size
+  <host>.score
+
+If option test_stats is enabled:
+
+  <host>.tests.<test>
+
+=cut
+
 extends 'Log::Saftpresse::Plugin';
 
 with 'Log::Saftpresse::Plugin::Role::CounterUtils';

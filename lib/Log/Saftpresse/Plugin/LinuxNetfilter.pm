@@ -31,7 +31,7 @@ sub process {
 	$stash->{'prefix'} = $prefix;
 	@$stash{ keys %values } = values %values;
 
-	$self->count_fields_value( $stash, 'prefix' );
+	$self->count_fields_occur( $stash, 'prefix' );
 
 	return;
 }

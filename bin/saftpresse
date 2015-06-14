@@ -4,8 +4,55 @@ use strict;
 use warnings;
 
 # PODNAME: saftpresse
-# ABSTRACT: a modular logfile analyzer
+# ABSTRACT: a modular and configurable logfile analyzer
 # VERSION
+
+=head1 Synopsis
+
+  usage: bin/saftpresse
+        [--config|-c <file>]
+        [--log-level|-l <level>]
+        [--help|-h]
+
+=head1 Description
+
+Saftpresse is a modular log file analyzer written perl.
+
+It features plugin architecture for
+
+=over
+
+=item Inputs
+
+For reading events from multiple sources.
+
+=item Plugins
+
+For processing of events.
+
+Plugins are able to convert or alter events.
+They can add additional information like dns lookup or geo-locations.
+They can also create relationships between events.
+For example measure the time between the connect and disconnect of a client.
+
+A counter api could be used to meter events and their content.
+
+=item Outputs
+
+Multiple outputs can be defined for storing of events.
+
+=item Counter Outputs
+
+Multiple outputs can be defined for storing of counter data.
+
+=back
+
+=head1 Architecture
+
+The saftpresse engine is currently designed as a single process
+using non-blocking IO.
+
+=cut
 
 use Log::Saftpresse::App;
 
