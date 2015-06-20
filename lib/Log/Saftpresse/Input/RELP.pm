@@ -5,6 +5,57 @@ use Moose;
 # ABSTRACT: RELP server input plugin for saftpresse
 # VERSION
 
+=head1 Description
+
+This plugin is a network input implementing the RELP protocol.
+
+RELP is the Reliable Event Logging Protocol:
+
+http://www.rsyslog.com/doc/relp.html
+
+=head2 Synopsis
+
+To send events from rsyslog to saftpresse configure rsyslog:
+
+  $ModLoad omrelp
+  *.* :omrelp:localhost:20514;RSYSLOG_ForwardFormat
+
+You should also configure a queue to avoid loosing of events when
+saftpresse is not running. For more information read:
+
+http://www.rsyslog.com/doc/rsyslog_reliable_forwarding.html
+
+In saftpresse configuration:
+
+  # relp network server
+  <Input rsyslog-input>
+    module = "RELP"
+    proto = "tcp"
+    port = 20514
+    listen = "127.0.0.1"
+  </Input>
+  
+  # decode syslog format
+  <Plugin syslog>
+    module = "Syslog"
+  </Plugin>
+
+=head1 Input Format
+
+This plugin will output an event for each recieved line with only the field
+
+=over message
+
+The line recieved.
+
+=back
+
+Use a plugin to decode the content of the line.
+
+For example the Syslog plugin could be used to decode the syslog line format.
+
+=cut
+
 extends 'Log::Saftpresse::Input::Server';
 
 use Log::Saftpresse::Input::RELP::Frame;

@@ -5,6 +5,48 @@ use Moose;
 # ABSTRACT: log input for reading STDIN
 # VERSION
 
+=head1 Description
+
+This input plugins reads events from STDIN.
+
+=head1 Synopsis
+
+  <Input stdin>
+    module = "Stdin"
+  </Input>
+
+=head1 Options
+
+=over
+
+=item max_chunk_lines (default: 1024)
+
+Maximum number of file to read in one chunk.
+
+=back
+
+=head1 Input Format
+
+For each line the plugin will generate an event with the following fields:
+
+=over
+
+=item message
+
+The content of the line.
+
+=item host
+
+The hostname of the system.
+
+=item time
+
+The current time.
+
+=back
+
+=cut
+
 use IO::Handle;
 use IO::Select;
 

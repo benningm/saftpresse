@@ -5,7 +5,7 @@ use Moose::Role;
 # ABSTRACT: plugin to gather postfix reject statistics
 # VERSION
 
-use Log::Saftpresse::Utils qw(gimme_domain verp_mung string_trimmer );
+use Log::Saftpresse::Plugin::Postfix::Utils qw(gimme_domain verp_mung string_trimmer );
 
 requires 'message_detail';
 requires 'reject_detail';
@@ -82,7 +82,7 @@ sub proc_smtpd_reject {
 
     # Next: get the reject "reason"
     $rejReas = $rejRmdr;
-    unless(defined( $self->message_detail )) {
+    unless( $self->message_detail ) {
 	if($rejTyp eq "RCPT" || $rejTyp eq "DATA" || $rejTyp eq "CONNECT") {	# special treatment :-(
 	    # If there are "<>"s immediately following the reject code, that's
 	    # an email address or HELO string.  There can be *anything* in

@@ -5,6 +5,39 @@ use Moose;
 # ABSTRACT: log input for following a file
 # VERSION
 
+=head1 Description
+
+This input watches a file for newly appended lines.
+
+=head1 Synopsis
+
+  <Input maillog>
+    module = "FileTail"
+    path = "/var/log/mail.log"
+  </Input>
+
+=head1 Format
+
+Foreach line appended to the file a event with the following fields is generated:
+
+=over
+
+=item message
+
+Content of the line.
+
+=item host
+
+The hostname of the system.
+
+=item time
+
+The current time.
+
+=back
+
+=cut
+
 use IO::File;
 use File::stat;
 

@@ -5,7 +5,7 @@ use Moose::Role;
 # ABSTRACT: plugin to gather postfix recieved messages statistics
 # VERSION
 
-use Log::Saftpresse::Utils qw( postfix_remote );
+use Log::Saftpresse::Plugin::Postfix::Utils qw( postfix_remote );
 
 sub process_recieved {
 	my ( $self, $stash, $notes ) = @_;

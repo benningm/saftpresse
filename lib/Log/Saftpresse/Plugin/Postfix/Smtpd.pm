@@ -5,7 +5,7 @@ use Moose::Role;
 # ABSTRACT: plugin to gather postfix/smtpd advanced statistics
 # VERSION
 
-use Log::Saftpresse::Utils qw( gimme_domain );
+use Log::Saftpresse::Plugin::Postfix::Utils qw( gimme_domain );
 
 use Time::Piece;
 use Time::Seconds;

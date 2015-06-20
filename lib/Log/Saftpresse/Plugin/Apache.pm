@@ -15,6 +15,7 @@ has 'detect_browser' => ( is => 'rw', isa => 'Bool', default => 1);
 has 'detect_search' => ( is => 'rw', isa => 'Bool', default => 1);
 
 use Log::Saftpresse::Log4perl;
+use URI;
 
 sub process {
 	my ( $self, $event ) = @_;

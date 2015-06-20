@@ -53,6 +53,9 @@ sub output {
 	my ( $self, @events ) = @_;
 
 	foreach my $event (@events) { 
+		if( defined $event->{'type'} && $event->{'type'} ne $self->type ) {
+			next;
+		}
 		$self->index_event( $event );
 	}
 

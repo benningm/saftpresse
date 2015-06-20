@@ -5,7 +5,7 @@ use Moose::Role;
 # ABSTRACT: plugin to gather postfix delivered messages statistics
 # VERSION
 
-use Log::Saftpresse::Utils qw( verp_mung );
+use Log::Saftpresse::Plugin::Postfix::Utils qw( verp_mung );
 
 requires 'deferred_detail';
 requires 'ignore_case';

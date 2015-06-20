@@ -5,6 +5,47 @@ use Moose;
 # ABSTRACT: udp/tcp network server input plugin for saftpresse
 # VERSION
 
+=head1 Description
+
+This plugin implements a TCP input server.
+
+Together with the Syslog plugin it could be used to build a syslog server.
+
+It could also be used as a base for building other tcp input servers.
+For example see the RELP server.
+
+=head1 Synopsis
+
+  # read syslog lines from network
+  <Input syslog>
+    module = "Server"
+    port = "514"
+    proto = "tcp"
+    listen = "192.168.0.1"
+    connection_queue_size = "10"
+  </Input>
+
+  # decode syslog line format
+  <Plugin syslog>
+    module = "syslog"
+  </Plugin>
+
+=head1 Input Format
+
+This plugin will output an event for each recieved line with only the field
+
+=over message
+
+The line recieved.
+
+=back
+
+Use a plugin to decode the content of the line.
+
+For example the Syslog plugin could be used to decode the syslog line format.
+
+=cut
+
 extends 'Log::Saftpresse::Input';
 
 use IO::Socket::INET;

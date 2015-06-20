@@ -7,7 +7,6 @@ use Moose;
 
 extends 'Log::Saftpresse::CountersOutput';
 
-use Net::Domain qw( hostfqdn );
 use IO::Socket::INET;
 
 sub output {
@@ -22,11 +21,7 @@ sub output {
 }
 
 has 'prefix' => ( is => 'rw', isa => 'Str', lazy => 1,
-	default => sub {
-		my $prefix = hostfqdn;
-		$prefix =~ s/\./_/g;
-		return $prefix;
-	},
+	default => 'saftpresse',
 );
 
 has '_handle' => (

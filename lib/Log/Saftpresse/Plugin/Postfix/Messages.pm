@@ -5,7 +5,7 @@ use Moose::Role;
 # ABSTRACT: plugin to gather postfix warning|fatal|panic messages
 # VERSION
 
-use Log::Saftpresse::Utils qw( string_trimmer );
+use Log::Saftpresse::Plugin::Postfix::Utils qw( string_trimmer );
 
 requires 'message_detail';
 requires 'smtpd_warn_detail';
