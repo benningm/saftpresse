@@ -1,52 +1,65 @@
 package Log::Saftpresse::CountersOutput::Pflogsumm;
 
-use strict;
-use warnings;
+use Moose;
 
 # ABSTRACT: plugin to output counters in pflogsumm style output
 # VERSION
 
-use base 'Log::Saftpresse::CountersOutput';
+extends 'Log::Saftpresse::CountersOutput';
 
 use Log::Saftpresse::Utils qw( adj_int_units get_smh);
 
 use Time::Piece;
 
+has 'problems_first' => ( is => 'rw', isa => 'Bool', default => 0 );
+
+has 'reject_detail' => ( is => 'rw', isa => 'Int', default => 0 );
+has 'bounce_detail' => ( is => 'rw', isa => 'Int', default => 0 );
+has 'deferral_detail' => ( is => 'rw', isa => 'Int', default => 0 );
+
+has 'smtp_detail' => ( is => 'rw', isa => 'Int', default => 0 );
+has 'smtpd_warn_detail' => ( is => 'rw', isa => 'Int', default => 0 );
+
+has 'quiet' => ( is => 'rw', isa => 'Bool', default => 0 );
+
+has 'top_domains_cnt' => ( is => 'rw', isa => 'Int', default => 20 );
+has 'top_users_cnt' => ( is => 'rw', isa => 'Int', default => 20 );
+
 sub output {
 	my ( $self, $cnt ) = @_;
+	my $pf_cnt = $cnt->{'Postfix'};
 
 	$self->print_totals( $cnt );
 
-	if( defined $cnt->{'PostfixSmtpdStats'} ) {
-		$self->print_smtpd_stats( $cnt->{'PostfixSmtpdStats'} );
+	if( defined $pf_cnt->get_node('conn') ) {
+		$self->print_smtpd_stats( $pf_cnt );
 	}
-	if( defined $self->{'problems_first'} ) {
-		$self->print_problems_reports( $cnt );
+	if( $self->problems_first ) {
+		$self->print_problems_reports( $pf_cnt );
 	}
 
 	$self->print_traffic_summaries( $cnt );
 
-	if( defined $self->{'top_domains_cnt'}
-			&& $self->{'top_domains_cnt'} != 0 ) {
+	if( $self->top_domains_cnt != 0 ) {
 		$self->print_domain_summaries( $cnt );
 	}
 
-	if( defined $cnt->{'PostfixSmtpdStats'} ) {
-		$self->print_smtpd_summaries( $cnt );
+	if( defined $pf_cnt->get_node('conn') ) {
+		$self->print_smtpd_summaries( $pf_cnt );
 	}
 
 	$self->print_user_summaries( $cnt );
 
 #	print_hash_by_key(\%noMsgSize, "Messages with no size data", 0, 1);
 
-	if( ! defined $self->{'problems_first'} ) {
-		$self->print_problems_reports( $cnt );
+	if( ! $self->problems_first ) {
+		$self->print_problems_reports( $pf_cnt );
 	}
 
 #	print_detailed_msg_data(\%msgDetail, "Message detail", $opts{'q'}) if($opts{'e'});
 
-	if( defined $cnt->{'TlsStatistics'} ) {
-		$self->print_tls_stats( $cnt );
+	if( defined $pf_cnt->{'tls_conn'} ) {
+		$self->print_tls_stats( $pf_cnt );
 	}
 	if( defined $cnt->{'PostfixGeoStats'} ) {
 		$self->print_geo_stats( $cnt->{'PostfixGeoStats'} );
@@ -57,23 +70,23 @@ sub output {
 
 sub print_user_summaries {
 	my ( $self, $cnt ) = @_;
-	my $delivered = $cnt->{'PostfixDelivered'};
-	my $quiet = $self->{'quiet'};
+	my $pf_cnt = $cnt->{'Postfix'};
+	my $quiet = $self->quiet;
 
 	$self->print_hash_by_cnt_vals(
-		$delivered->get_node('recieved', 'by_sender'),
+		$pf_cnt->get_node('recieved', 'by_sender'),
 		"Senders by message count", 0, $quiet );
 
 	$self->print_hash_by_cnt_vals(
-		$delivered->get_node('sent', 'by_rcpt'),
+		$pf_cnt->get_node('sent', 'by_rcpt'),
 		"Recipients by message count", 0, $quiet );
 
 	$self->print_hash_by_cnt_vals(
-		$delivered->get_node('recieved', 'size', 'by_sender'),
+		$pf_cnt->get_node('recieved', 'size', 'by_sender'),
 		"Senders by message size", 0, $quiet );
 
 	$self->print_hash_by_cnt_vals(
-		$delivered->get_node('sent', 'size', 'by_rcpt'),
+		$pf_cnt->get_node('sent', 'size', 'by_rcpt'),
 		"Recipients by message size", 0, $quiet );
 
 	return;
@@ -114,7 +127,7 @@ sub print_table_from_hashes {
 		my ( $sortby, $alg, $limit ) = @$sort;
 		my ( $row ) = grep { $_->[0] eq $sortby } @rows;
 		$row = $row->[1];
-		if( ! defined $row ) { die('cant find row '.$sortby.' for sorting'); }
+		if( ! defined $row ) { confess('cant find row '.$sortby.' for sorting'); }
 		if( $alg eq 'decimal' ) {
 			@yaxis = sort { $row->{$b} <=> $row->{$a} } keys %$row;
 		} else { # string
@@ -166,25 +179,23 @@ sub print_table_header {
 
 sub print_domain_summaries {
 	my ( $self, $cnt ) = @_;
-	my $top_cnt = $self->{'top_domains_cnt'};
-	$top_cnt = defined $top_cnt && $top_cnt >= 0 ?
-		$self->{'top_domains_cnt'} : 20;
-	my $delivered = $cnt->{'PostfixDelivered'};
+	my $top_cnt = $self->top_domains_cnt;
+	my $pf_cnt = $cnt->{'Postfix'};
 
 	foreach my $table ( 'sent', 'recieved' ) {
 		print_subsect_title("Host/Domain Summary: Message Delivery (top $top_cnt $table)");
 		$self->print_table_from_hashes( 'host/domain',
 			[ 'sent cnt', 'decimal', $top_cnt ], 25, 10,
-			[ 'sent cnt', $delivered->get_node($table, 'by_domain') ],
-			[ 'bytes', $delivered->get_node($table, 'size', 'by_domain') ],
+			[ 'sent cnt', $pf_cnt->get_node($table, 'by_domain') ],
+			[ 'bytes', $pf_cnt->get_node($table, 'size', 'by_domain') ],
 			$table eq 'sent' ? (
 				# TODO
 				#[ 'defers', $delivered->get_node('busy', 'per_day') ],
 				[ 'avg delay', $self->hash_calc_avg( 2,
-						$delivered->get_node($table, 'delay', 'by_domain'),
-						$delivered->get_node($table, 'by_domain'),
+						$pf_cnt->get_node('sent', $table, 'delay', 'by_domain'),
+						$pf_cnt->get_node('sent', $table, 'by_domain'),
 					), ],
-				[ 'max. delay', $delivered->get_node($table, 'max_delay', 'by_domain'), ],
+				[ 'max. delay', $pf_cnt->get_node('sent', $table, 'max_delay', 'by_domain'), ],
 			) : (),
 		);
 	}
@@ -194,7 +205,6 @@ sub print_domain_summaries {
 
 sub print_smtpd_summaries {
 	my ( $self, $cnt ) = @_;
-	my $smtpd_stats = $cnt->{'PostfixSmtpdStats'};
 	my $params = {
 		'day' => [ 'Per-Day', 'per_day', 'string', 15 ],
 		'hour' => [ 'Per-Hour', 'per_hr', 'decimal', 15 ],
@@ -205,13 +215,13 @@ sub print_smtpd_summaries {
 		my ( $title, $key, $sort, $len ) = @{$params->{ $table }};
 		print_subsect_title("$title SMTPD Connection Summary");
 		$self->print_table_from_hashes( $table, $sort, $len, 10,
-			[ 'connections', $smtpd_stats->get_node($key) ],
-			[ 'time conn.', $smtpd_stats->get_node('busy', $key) ],
+			[ 'connections', $cnt->get_node('conn', $key) ],
+			[ 'time conn.', $cnt->get_node('conn', 'busy', $key) ],
 			[ 'avg./conn.', $self->hash_calc_avg( 2,
-					$smtpd_stats->get_node('busy', $key),
-					$smtpd_stats->get_node($key),
+					$cnt->get_node('conn', 'busy', $key),
+					$cnt->get_node('conn', $key),
 				), ],
-			[ 'max. time', $smtpd_stats->get_node('busy', 'max_'.$key ), ],
+			[ 'max. time', $cnt->get_node('conn', 'busy', 'max_'.$key ), ],
 		);
 	}
 	return;
@@ -219,6 +229,7 @@ sub print_smtpd_summaries {
 
 sub print_traffic_summaries {
 	my ( $self, $cnt ) = @_;
+	my $pf_cnt = $cnt->{'Postfix'};
 	my $params = {
 		'day' => [ 'Per-Day', 'per_day', 'string' ],
 		'hour' => [ 'Per-Hour', 'per_hr', 'decimal' ],
@@ -228,11 +239,11 @@ sub print_traffic_summaries {
 		my ( $title, $key, $sort ) = @{$params->{ $table }};
 		print_subsect_title( "$title Traffic Summary" );
 		$self->print_table_from_hashes( $table, $sort, 15, 10,
-			[ 'recieved', $cnt->{'PostfixRecieved'}->get_node($key) ],
-			[ 'delivered', $cnt->{'PostfixDelivered'}->get_node('sent', $key) ],
-			[ 'deffered', $cnt->{'PostfixDelivered'}->get_node('deferred', $key), ],
-			[ 'bounced', $cnt->{'PostfixDelivered'}->get_node('bounced', $key), ],
-			[ 'rejected', $cnt->{'PostfixRejects'}->get_node($key) ],
+			[ 'recieved', $pf_cnt->get_node('incoming', $key) ],
+			[ 'delivered', $pf_cnt->get_node('sent', $key) ],
+			[ 'deffered', $pf_cnt->get_node('deferred', $key), ],
+			[ 'bounced', $pf_cnt->get_node('bounced', $key), ],
+			[ 'rejected', $pf_cnt->get_node('reject', $key) ],
 		);
 	}
 
@@ -241,32 +252,30 @@ sub print_traffic_summaries {
 
 sub print_totals {
 	my ( $self, $cnt ) = @_;
-	my $reject_cnt = $cnt->{'PostfixRejects'};
-	my $recieved_cnt = $cnt->{'PostfixRecieved'};
-	my $delivered_cnt = $cnt->{'PostfixDelivered'};
+	my $pf_cnt = $cnt->{'Postfix'};
 	my $smtpdConnCnt = 0;
 
 	# PostfixRejects
-	my $msgsRjctd = $reject_cnt->get_value_or_zero('total', 'reject');
-	my $msgsDscrdd = $reject_cnt->get_value_or_zero('total', 'discard');
-	my $msgsWrnd = $reject_cnt->get_value_or_zero('total', 'warning');
-	my $msgsHld = $reject_cnt->get_value_or_zero('total', 'hold');
+	my $msgsRjctd = $pf_cnt->get_value_or_zero('reject', 'total', 'reject');
+	my $msgsDscrdd = $pf_cnt->get_value_or_zero('reject', 'total', 'discard');
+	my $msgsWrnd = $pf_cnt->get_value_or_zero('reject', 'total', 'warning');
+	my $msgsHld = $pf_cnt->get_value_or_zero('reject', 'total', 'hold');
 
 	# PostfixRecieved
-	my $msgsRcvd = $recieved_cnt->get_value_or_zero('total');
+	my $msgsRcvd = $pf_cnt->get_value_or_zero('incoming', 'total');
 
-	my $msgsDlvrd = $delivered_cnt->get_value_or_zero('sent', 'total');
-	my $msgsDfrd = $delivered_cnt->get_value_or_zero('deferred', 'total');
-	my $msgsFwdd = $delivered_cnt->get_value_or_zero('forwarded');
-	my $msgsBncd = $delivered_cnt->get_value_or_zero('bounced', 'total');
+	my $msgsDlvrd = $pf_cnt->get_value_or_zero('sent', 'total');
+	my $msgsDfrd = $pf_cnt->get_value_or_zero('deferred', 'total');
+	my $msgsFwdd = $pf_cnt->get_value_or_zero('forwarded');
+	my $msgsBncd = $pf_cnt->get_value_or_zero('bounced', 'total');
 
-	my $sizeRcvd = $delivered_cnt->get_value_or_zero('recieved', 'size', 'total');
-	my $sizeDlvrd = $delivered_cnt->get_value_or_zero('sent', 'size', 'total');
+	my $sizeRcvd = $pf_cnt->get_value_or_zero('recieved', 'size', 'total');
+	my $sizeDlvrd = $pf_cnt->get_value_or_zero('sent', 'size', 'total');
 
-	my $sendgUserCnt = $delivered_cnt->get_key_count('recieved', 'by_sender');
-	my $sendgDomCnt = $delivered_cnt->get_key_count('recieved', 'by_domain'); 
-	my $recipUserCnt =$delivered_cnt->get_key_count('sent', 'by_rcpt');
-	my $recipDomCnt = $delivered_cnt->get_key_count('sent', 'by_domain');
+	my $sendgUserCnt = $pf_cnt->get_key_count('recieved', 'by_sender');
+	my $sendgDomCnt = $pf_cnt->get_key_count('recieved', 'by_domain'); 
+	my $recipUserCnt =$pf_cnt->get_key_count('sent', 'by_rcpt');
+	my $recipDomCnt = $pf_cnt->get_key_count('sent', 'by_domain');
 
 	# Calculate percentage of messages rejected and discarded
 	my $msgsRjctdPct = 0;
@@ -305,19 +314,19 @@ sub print_totals {
 
 sub print_smtpd_stats {
 	my ( $self, $cnt ) = @_;
-	my $smtpdConnCnt = $cnt->get_value_or_zero('total');
+	my $smtpdConnCnt = $cnt->get_value_or_zero('conn', 'total');
 	print "\nsmtpd\n\n";
 	printf "  %6d%s  connections\n",
 	adj_int_units($smtpdConnCnt);
 	printf "  %6d%s  hosts/domains\n",
-	adj_int_units(int(keys %{$cnt->get_node('per_domain')}));
+	adj_int_units(int(keys %{$cnt->get_node('conn', 'per_domain')}));
 	printf "  %6d   avg. connect time (seconds)\n",
 		$smtpdConnCnt > 0 ?
-		($cnt->get_value_or_zero('busy', 'total')
+		($cnt->get_value_or_zero('conn', 'busy', 'total')
 			/ $smtpdConnCnt ) + .5
 		: 0;
 	{
-		my ($sec, $min, $hr) = get_smh($cnt->get_value_or_zero('busy', 'total'));
+		my ($sec, $min, $hr) = get_smh($cnt->get_value_or_zero('conn', 'busy', 'total'));
 		printf " %2d:%02d:%02d  total connect time\n",
 		$hr, $min, $sec;
 	}
@@ -327,24 +336,21 @@ sub print_smtpd_stats {
 sub print_problems_reports {
 	my ( $self, $cnt ) = @_;
 
-	my $delivered_cnt = $cnt->{'PostfixDelivered'};
-	my $reject_cnt = $cnt->{'PostfixRejects'};
-
-	if($self->{'deferral_detail'} != 0) {
-		$self->print_nested_hash( $delivered_cnt->get_node('deferred'),
+	if($self->deferral_detail != 0) {
+		$self->print_nested_hash( $cnt->get_node('deferred'),
 			"message deferral detail",
-			$self->{'deferral_detail'} );
+			$self->deferral_detail );
 	}
-	if($self->{'bounce_detail'} != 0) {
-		$self->print_nested_hash( $delivered_cnt->get_node('bounced'),
+	if($self->bounce_detail != 0) {
+		$self->print_nested_hash( $cnt->get_node('bounced'),
 			"message bounce detail (by relay)",
-			$self->{'bounce_detail'} );
+			$self->bounce_detail );
 	}
-	if($self->{'reject_detail'} != 0) {
+	if($self->reject_detail != 0) {
 		foreach my $key ( 'reject', 'warning', 'hold', 'discard') {
-			$self->print_nested_hash($reject_cnt->get_node($key),
+			$self->print_nested_hash($cnt->get_node('reject', $key),
 				"message $key detail",
-				$self->{'reject_detail'} );
+				$self->reject_detail );
 		}
 	}
 
@@ -352,14 +358,14 @@ sub print_problems_reports {
 		my $messages = $smtp_cnt->get_node('messages');
 		if( defined $messages ) {
 			$self->print_nested_hash($messages, "smtp delivery failures",
-				$self->{'smtp_detail'} );
+				$self->smtp_detail );
 		}
 	}
 	if( my $msg_cnt =  $cnt->{'PostfixMessages'} ) {
-		if($self->{'smtpd_warn_detail'} != 0) {
+		if($self->smtpd_warn_detail != 0) {
 			$self->print_nested_hash($msg_cnt->get_node('warning'),
 				"Warnings",
-				$self->{'smtpd_warn_detail'} );
+				$self->smtpd_warn_detail );
 		}
 		$self->print_nested_hash($msg_cnt->get_node('fatal'),
 			"Fatal Errors", 0 );
@@ -372,34 +378,30 @@ sub print_problems_reports {
 
 sub print_tls_stats {
 	my ( $self, $cnt ) = @_;
-	my $tls_cnt = $cnt->{'TlsStatistics'};
-	my $smtpd_cnt = $cnt->{'PostfixSmtpdStats'};
-	my $recieved_cnt = $cnt->{'PostfixRecieved'};
-	my $delivered_cnt = $cnt->{'PostfixDelivered'};
 	my $smtpdConnCnt;
 
-	if( defined $smtpd_cnt ) {
-		$smtpdConnCnt = $smtpd_cnt->get_value_or_zero('total');
+	if( defined $cnt->get_node('conn') ) {
+		$smtpdConnCnt = $cnt->get_value_or_zero('conn', 'total');
 	}
-	my $msgs_rcvd = $recieved_cnt->get_value_or_zero('total');
-	my $msgs_sent = $delivered_cnt->get_value_or_zero('sent', 'total');
+	my $msgs_rcvd = $cnt->get_value_or_zero('incoming', 'total');
+	my $msgs_sent = $cnt->get_value_or_zero('sent', 'total');
 
 	print_subsect_title("TLS Statistics");
 
 	my @total_stats = (
 		[ 'incoming tls connections' => $smtpdConnCnt,
-			'smtpd', 'connections', 'total' ],
+			'tls_conn', 'smtpd', 'total' ],
 		[ 'incoming tls messages' => $msgs_rcvd,
-			'smtpd', 'messages', 'total' ],
+			'tls_msg', 'smtpd', 'total' ],
 		[ 'outgoing tls connections' => $smtpdConnCnt,
-			'smtp', 'connections', 'total' ],
+			'tls_conn', 'smtp', 'total' ],
 		[ 'outgoing tls messages' => $msgs_sent,
-			'smtp', 'messages', 'total' ],
+			'tls_msg', 'smtp', 'total' ],
 	);
 
 	foreach my $stat ( @total_stats ) {
 		my ( $name, $total, @node ) = @$stat;
-		my $value = $tls_cnt->get( @node );
+		my $value = $cnt->get( @node );
 		if( ! defined $value ) { next; }
 		printf " %6d%s $name",
 			adj_int_units($value);
@@ -410,26 +412,26 @@ sub print_tls_stats {
 
 	my @tls_statistics = (
 		[ "Incoming TLS trust-level" =>
-			$smtpdConnCnt, 'smtpd', 'connections', 'level' ],
+			$smtpdConnCnt, 'tls_conn', 'smtpd', 'level' ],
 		[ "Outgoing TLS trust-level" =>
-			0, 'smtp', 'connections', 'level' ],
+			0, 'tls_conn', 'smtp', 'level' ],
 		[ "Incoming TLS Protocol Version" =>
-			$smtpdConnCnt, 'smtpd', 'connections', 'protocol' ],
+			$smtpdConnCnt, 'tls_conn', 'smtpd', 'protocol' ],
 		[ "Outgoing TLS Protocol Version" =>
-			0, 'smtp', 'connections', 'protocol' ],
+			0, 'tls_conn', 'smtp', 'protocol' ],
 		[ "Incoming TLS key length" =>
-			$smtpdConnCnt, 'smtpd', 'connections', 'keylen' ],
+			$smtpdConnCnt, 'tls_conn', 'smtpd', 'keylen' ],
 		[ "Outgoing TLS key length" =>
-			0, 'smtp', 'connections', 'keylen' ],
+			0, 'tls_conn', 'smtp', 'keylen' ],
 		[ "Incoming TLS Ciphers" =>
-			$smtpdConnCnt, 'smtpd', 'connections', 'cipher' ],
+			$smtpdConnCnt, 'tls_conn', 'smtpd', 'cipher' ],
 		[ "Outgoing TLS Ciphers" =>
-			0, 'smtp', 'connections', 'cipher' ],
+			0, 'tls_conn', 'smtp', 'cipher' ],
 	);
 
 	foreach my $tls_stat ( @tls_statistics ) {
 		my ( $title, $total, @node ) = @$tls_stat;
-		my $values = $tls_cnt->get_node(@node);
+		my $values = $cnt->get_node(@node);
 		if( ! defined $values ) { next; }
 		$values = hash_key_add_percent( $values, $total );
 		$self->print_hash_by_cnt_vals( $values, $title, 0, 1 );
@@ -504,7 +506,7 @@ sub print_hash_by_key {
 # print "nested" hashes
 sub print_nested_hash {
     my( $self, $hashRef, $title, $cnt ) = @_;
-    my $quiet = $self->{'quiet'};
+    my $quiet = $self->quiet;
     my $dottedLine;
     if( ! defined $hashRef ) { return; }
     unless(%$hashRef) {

@@ -27,7 +27,6 @@ sub process {
 
 		$stash->{'time'} = $time;
 		$stash->{'message'} = $msg;
-		return;
 	}
 
 	if( my ( $date_str, $msg ) = $stash->{'message'} =~

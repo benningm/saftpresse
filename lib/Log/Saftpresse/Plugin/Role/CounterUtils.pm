@@ -20,17 +20,17 @@ sub _get_event_host {
 
 sub incr_host {
 	my ( $self, $event, @params ) = @_;
-	return $self->incr( $self->_get_event_host($event), @params );
+	return $self->incr( ($self->_get_event_host($event)), @params );
 }
 
 sub incr_host_one {
 	my ( $self, $event, @params ) = @_;
-	return $self->incr_one( $self->_get_event_host($event), @params );
+	return $self->incr_one( ($self->_get_event_host($event)), @params );
 }
 
 sub incr_host_max {
 	my ( $self, $event, @params ) = @_;
-	return $self->incr_max( $self->_get_event_host($event), @params );
+	return $self->incr_max( ($self->_get_event_host($event)), @params );
 }
 
 sub count_array_field_values {

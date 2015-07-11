@@ -152,7 +152,8 @@ $analyzer->load_plugin('Postfix',
 	reject_detail => $opts{'rejectDetail'},
 	smtpd_warn_detail => $opts{'smtpdWarnDetail'},
 	uucp_mung => $opts{'m'},
-	verp_mung => $opts{'verpMung'},
+	verp_mung => defined $opts{'verpMung'} ? $opts{'verpMung'} : 0,
+	tls_stats => defined $opts{'tlsStats'} ? 1 : 0,
 );
 
 if( defined $opts{'geoip'} ) {

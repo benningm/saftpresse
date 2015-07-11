@@ -13,6 +13,50 @@ use Log::Saftpresse::Slurp;
 use Log::Saftpresse::CounterOutputs;
 use Log::Saftpresse::Outputs;
 
+=head1 Description
+
+This is the central class of the saftpresse log analyzer.
+
+=head1 Synopsis
+
+  use Log::Saftpresse;
+
+  my $saft = Log:::Saftpresse->new;
+
+  $saft->load_config( $path );
+  $saft->init;
+
+  # start main loop
+  $saft->run;
+
+=head1 Attributes
+
+=head2 config( L<Log::Saftpresse::Config>)
+
+Holds the configuration.
+
+=head2 slurp( L<Log::Saftpresse::Slurp> )
+
+Holds the slurp class implementing the input.
+
+=head2 analyzer( L<Log::Saftpresse::Analyzer> )
+
+Holds the analyzer object which controls the processing plugins.
+
+=head2 counter_outputs( L<Log::Saftpresse::CounterOutputs> )
+
+Holds the counter output object which controls output of metrics.
+
+=head2 outputs( L<Log::Saftpresse::Outputs> )
+
+Holds the Outputs plugin which controls the event output.
+
+=head2 flush_interval( $seconds )
+
+How often to flush metrics to CounterOutputs.
+
+=cut
+
 has 'config' => (
 	is => 'ro', isa => 'Log::Saftpresse::Config', lazy => 1,
 	default => sub { Log::Saftpresse::Config->new },
@@ -46,6 +90,16 @@ has '_last_flush_counters' => (
 	default => sub { time },
 );
 
+=head1 Methods
+
+=head2 init
+
+Initialize saftpresse as configured in config file.
+
+Will load slurp, analyzer, counter_outputs, outputs and flush_interval
+from configuration.
+
+=cut
 
 sub init {
 	my $self = shift;
@@ -86,6 +140,12 @@ sub _flushed_counters {
 	return;
 }
 
+=head2 run
+
+Run the main loop of saftpresse.
+
+=cut
+
 sub run {
 	my $self = shift;
 	my $slurp = $self->slurp;
@@ -113,6 +173,22 @@ sub run {
 
 	return;
 }
+
+=head1 See also
+
+=over
+
+=item L<Log::Saftpresse::App> 
+
+Commandline glue for this class.
+
+=item bin/saftpresse
+
+Commandline interface of saftpresse with end-user docs.
+
+=back
+
+=cut
 
 1;
 

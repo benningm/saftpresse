@@ -2,6 +2,9 @@ package Log::Saftpresse::Input::RELP::Frame;
 
 use Moose;
 
+# VERSION
+# ABSTRACT: class for parsing and generating RELP frames
+
 has 'txnr' => ( is => 'rw', isa => 'Int', required => 1 );
 has 'command' => ( is => 'rw', isa => 'Str', required => 1 );
 has 'data' => ( is => 'rw', isa => 'Str', default => '',

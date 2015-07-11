@@ -72,6 +72,10 @@ Convert uucp addresses.
 
 Replace VERPs with placeholder.
 
+=item tls_stats (default: 1)
+
+Enable/disable TLS statistics.
+
 =back
 
 =head1 Input
@@ -172,6 +176,8 @@ has 'extended' => ( is => 'rw', isa => 'Bool', default => 0 );
 has 'uucp_mung' => ( is => 'rw', isa => 'Bool', default => 0 );
 has 'verp_mung' => ( is => 'rw', isa => 'Int', default => 0 );
 
+has 'tls_stats' => ( is => 'rw', isa => 'Bool', default => 1 );
+
 with 'Log::Saftpresse::Plugin::Role::CounterUtils';
 
 with 'Log::Saftpresse::Plugin::Postfix::Service';
@@ -205,7 +211,9 @@ sub process {
 	$self->process_delivered( $stash, $notes );
 	$self->process_smtp( $stash, $notes );
 	$self->process_smtpd( $stash, $notes );
-	$self->process_tls( $stash, $notes );
+	if( $self->tls_stats ) {
+		$self->process_tls( $stash, $notes );
+	}
 
 	return;
 }
