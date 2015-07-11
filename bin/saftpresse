@@ -99,6 +99,8 @@ Plugin to parse syslog file format. (/var/log/...)
 
 Multiple outputs can be defined for storing of events.
 
+=over
+
 =item L<Log::Saftpresse::Output::Elasticsearch>
 
 Write events to an elasticsearch server.
