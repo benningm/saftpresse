@@ -20,13 +20,31 @@ Saftpresse is a modular log file analyzer written perl.
 
 It features plugin architecture for
 
-=over
-
-=item Inputs
+=head2 Inputs
 
 For reading events from multiple sources.
 
-=item Plugins
+=over
+
+=item L<Log::Saftpresse::Input::Stdin>
+
+Reads log lines from STDIN.
+
+=item L<Log::Saftpresse::Input::FileTail>
+
+Will read all new lines from a file like tail(1) does.
+
+=item L<Log::Saftpresse::Input::Server>
+
+Line based TCP server. (eg. for syslog)
+
+=item L<Log::Saftpresse::Input::RELP>
+
+A TCP server implmenting the RELP protocol.
+
+=back
+
+=head2 Plugins
 
 For processing of events.
 
@@ -37,13 +55,77 @@ For example measure the time between the connect and disconnect of a client.
 
 A counter api could be used to meter events and their content.
 
-=item Outputs
+=over
+
+=item L<Log::Saftpresse::Plugin::Amavis>
+
+Plugin for amavisd-new log output.
+
+=item L<Log::Saftpresse::Plugin::Apache>
+
+Plugin for apache httpd log output.
+
+=item L<Log::Saftpresse::Plugin::GeoIP>
+
+Plugin for looking up ip in GeoIP database.
+
+=item L<Log::Saftpresse::Plugin::GraphitLineFormat>
+
+Plugin for parsing graphit line format messages.
+
+=item L<Log::Saftpresse::Plugin::LinuxNetfilter>
+
+Plugin for parsing output of linux netfilters LOG target.
+
+=item L<Log::Saftpresse::Plugin::Postfix>
+
+Plugin for parsing postfix mail logs based on pflogsumm.
+
+=item L<Log::Saftpresse::Plugin::PostfixGeoStats>
+
+Plugin to add geoip information to postfix events.
+
+=item L<Log::Saftpresse::Plugin::Syslog>
+
+Plugin to parse syslog network line format.
+
+=item L<Log::Saftpresse::Plugin::SyslogFile>
+
+Plugin to parse syslog file format. (/var/log/...)
+
+=back
+
+=head2 Outputs
 
 Multiple outputs can be defined for storing of events.
 
-=item Counter Outputs
+=item L<Log::Saftpresse::Output::Elasticsearch>
+
+Write events to an elasticsearch server.
+
+=item L<Log::Saftpresse::Output::Graphite>
+
+Write graphit events to an carbon line reciever.
+
+=item L<Log::Saftpresse::Output::JSON>
+
+Dump events in JSON format.
+
+=back
+
+=head2 Counter Outputs
 
 Multiple outputs can be defined for storing of counter data.
+
+=over
+
+=item L<Log::Saftpresse::CountersOutput::Dump>
+
+Dumper metric data.
+
+=item L<Log::Saftpresse::CountersOutput::Graphite>
+
+Write metrics to a carbon line reciever.
 
 =back
 
