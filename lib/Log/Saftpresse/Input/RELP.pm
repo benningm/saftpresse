@@ -44,7 +44,9 @@ In saftpresse configuration:
 
 This plugin will output an event for each recieved line with only the field
 
-=over message
+=over
+
+=item message
 
 The line recieved.
 
