@@ -21,7 +21,8 @@ $Template::Stash::HASH_OPS->{ type } = sub { return 'hash'; };
 
 sub version {
 	my $version;
-        {
+  {
+    ## no critic
 		no strict 'vars'; # is only declared in build
 		$version = defined $VERSION ? $VERSION : '(git checkout)';
 	}

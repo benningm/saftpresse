@@ -51,7 +51,7 @@ sub process {
 
 has '_browser_detect_installed' => ( is => 'ro', isa => 'Bool', lazy => 1,
 	default => sub {
-		eval { require 'HTTP/BrowserDetect.pm' };
+		eval { require HTTP::BrowserDetect }; 
 		if( $@ ) {
 			$log->warn('HTTP::BrowserDetect is not installed. disabled detect_browser in Apache plugin! ('.$@.')');
 			return 0;

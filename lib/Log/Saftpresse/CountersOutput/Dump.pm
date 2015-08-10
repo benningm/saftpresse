@@ -37,31 +37,32 @@ has 'graphit_prefix' => (
 	},
 );
 
+sub _proc_hash {
+	my ( $path, $hash, $now ) = @_;
+	foreach my $key ( keys %$hash ) {
+		my $value = $hash->{$key};
+		my $type = ref $value;
+		my $graphit_key = $key;
+		$graphit_key =~ s/\./_/g;
+		my $this_path = $path.'.'.$graphit_key;
+		if( ! defined $value ) {
+			# noop
+		} elsif( $type eq 'HASH' ) {
+			_proc_hash($this_path, $value, $now);
+		} elsif( $type eq '' ) {
+			print $this_path.' '.$value.' '.$now."\n";
+		} else {
+			die('unhandled data structure!');
+		}
+	}
+	return;
+}
+
 sub _output_graphit { 
 	my ( $self, $data ) = @_;
-	our $now = time;
+	my $now = time;
 	
-	sub _proc_hash {
-		my ( $path, $hash ) = @_;
-		foreach my $key ( keys %$hash ) {
-			my $value = $hash->{$key};
-			my $type = ref $value;
-			my $graphit_key = $key;
-			$graphit_key =~ s/\./_/g;
-			my $this_path = $path.'.'.$graphit_key;
-			if( ! defined $value ) {
-				# noop
-			} elsif( $type eq 'HASH' ) {
-				_proc_hash($this_path, $value);
-			} elsif( $type eq '' ) {
-				print $this_path.' '.$value.' '.$now."\n";
-			} else {
-				die('unhandled data structure!');
-			}
-		}
-		return;
-	}
-	_proc_hash($self->graphit_prefix, $data);
+	_proc_hash($self->graphit_prefix, $data, $now);
 
 	return;
 }

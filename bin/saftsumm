@@ -97,7 +97,8 @@ if( defined $opts{'man'} ) {
 
 if(defined($opts{'version'})) {
 	my $version;
-        {
+  {
+    ## no critic
 		no strict 'vars'; # is only declared in build
 		$version = defined $VERSION ? $VERSION : '(git checkout)';
 	}
@@ -114,7 +115,7 @@ if( ! defined $opts{'output'} ) {
 	$opts{'output'} = 'Pflogsumm';
 }
 my $output_class = "Log::Saftpresse::CountersOutput::".$opts{'output'};
-eval "require $output_class;";
+eval "require $output_class;"; ## no critic
 if( $@ ) { die "error loading output: ".$@; }
 my $output = $output_class->new(
 	problems_first => $opts{'pf'},

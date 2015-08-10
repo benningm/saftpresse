@@ -40,7 +40,7 @@ sub _backend {
 	}
 	foreach my $module ( 'JSON::Color', 'JSON') {
 		my $require = "require $module;";
-		eval $require;
+		eval $require; ## no critic
 		if( ! $@ ) {
 			return $module;
 		}

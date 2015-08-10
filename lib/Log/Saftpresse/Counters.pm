@@ -1,9 +1,9 @@
 package Log::Saftpresse::Counters;
 
+use Moose;
+
 # ABSTRACT: objects to hold and manipulate counters
 # VERSION
-
-use Moose;
 
 use Carp;
 
