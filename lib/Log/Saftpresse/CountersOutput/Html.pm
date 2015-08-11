@@ -524,13 +524,13 @@ sub statistics_from_hashes {
 	}
 
 	foreach my $row ( @yaxis ) {
-		push(\@labeled_rows, [ $row, map { $_->{$row} } @hashes ] );
+		push(@labeled_rows, [ $row, map { $_->{$row} } @hashes ] );
 	}
 
 	foreach my $row ( @rows ) {
 		my $name = $row->[0];
 		my $values = $row->[1];
-		push(\@series, {
+		push(@series, {
 			label => $name,
 			data => [ map { [
 				$_ =~ /\d{4}-\d{2}-\d{2}/ ? 
