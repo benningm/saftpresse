@@ -78,12 +78,12 @@ sub new_from_fh {
 	}
 
 	my $obj = $class->new(
-                'txnr' => $txnr,
-                'command' => $command,
-                'data' => $data,
-                @_
-        );
-        return $obj;
+    'txnr' => $txnr,
+    'command' => $command,
+    'data' => $data,
+    @_
+  );
+  return $obj;
 }
 
 1;

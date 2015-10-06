@@ -151,20 +151,23 @@ sub run {
 	my $slurp = $self->slurp;
 	my $last_flush = time;
 
-	$log->debug('entering main loop');
+	$log->info('entering main loop');
 	for(;;) { # main loop
 		my $events;
 		if( $slurp->can_read(1) ) {
+      $log->debug('checking for new input...');
 			$events = $slurp->read_events;
 			foreach my $event ( @$events ) {
 				$self->analyzer->process_event( $event );
 			}
 		}
 		if( scalar @$events ) {
+      $log->debug('sending '.scalar(@$events).' events to outputs...');
 			$self->outputs->output( @$events );
 		}
 
 		if( $self->_need_flush_counters ){
+      $log->debug('flushing counters...');
 			$self->counter_outputs->output(
 				$self->analyzer->get_all_counters );
 			$self->_flushed_counters;

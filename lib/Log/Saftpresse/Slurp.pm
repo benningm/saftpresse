@@ -7,6 +7,8 @@ use Moose;
 
 extends 'Log::Saftpresse::PluginContainer';
 
+use Log::Saftpresse::Log4perl;
+
 use IO::Select;
 use Time::HiRes qw( sleep gettimeofday tv_interval );
 
@@ -62,7 +64,12 @@ sub read_events {
 	foreach my $plugin ( @{$self->plugins} ) {
 		if( $plugin->can_read ) {
 			if( $plugin->eof ) { next; }
-			push( @events, $plugin->read_events );
+      eval {
+		  	push( @events, $plugin->read_events );
+      };
+      if( $@ ) {
+        $log->error('error while reading from plugin '.$plugin->name.': '.$@);
+      }
 		}
 		$eof = 0;
 	}
