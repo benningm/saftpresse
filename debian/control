@@ -1,0 +1,25 @@
+Source: saftpresse
+Section: perl
+Priority: optional
+Maintainer: Markus Benning <ich@markusbenning.de>
+Build-Depends: debhelper (>= 9)
+Build-Depends-Indep: perl
+Standards-Version: 3.9.6
+Homepage: https://metacpan.org/release/Log-Saftpresse
+
+Package: saftpresse
+Architecture: all
+Depends: ${misc:Depends}, ${perl:Depends}, libmoose-perl, liblog-log4perl-perl, libtie-ixhash-perl, libconfig-general-perl, libjson-perl, liburi-perl, libgeo-ip-perl, libsearch-elasticsearch-perl >= 2.00
+Description: a modular logfile analyzer
+ saftpresse is a modular logfile analyser written in perl
+ .
+ It features a 'saftsumm' command interface which tries to
+ provide a pflogsumm like interface.
+ .
+ The command 'saftpresse' is a log-analyser daemon with a plugin
+ architecture allowing plugins for:
+ .
+  * Input (eg. syslog, relp)
+  * Plugins for processing (eg. postfix, apache,...)
+  * Output (eg. elasticsearch)
+  * CounterOutput (eg. graphit)
