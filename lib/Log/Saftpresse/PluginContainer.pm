@@ -5,6 +5,8 @@ use Moose;
 # ABSTRACT: base class for classes holding plugins
 # VERSION
 
+use Log::Saftpresse::Log4perl;
+
 has 'plugin_prefix' => (
 	is => 'rw', isa => 'Str',
 	default => 'Log::Saftpresse::Plugin::',
@@ -27,6 +29,7 @@ sub load_plugin {
 	my $plugin_class = $self->plugin_prefix.$params{'module'};
 	my $plugin;
 
+  $log->info('loading plugin '.$name.' ('.$plugin_class.')...');
 	my $code = "require ".$plugin_class.";";
 	eval $code; ## no critic (ProhibitStringyEval)
 	if($@) {

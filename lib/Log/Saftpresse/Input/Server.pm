@@ -2,6 +2,8 @@ package Log::Saftpresse::Input::Server;
 
 use Moose;
 
+use Log::Saftpresse::Log4perl;
+
 # ABSTRACT: udp/tcp network server input plugin for saftpresse
 # VERSION
 
@@ -63,6 +65,7 @@ has 'listener' => (
 	is => 'ro', isa => 'IO::Socket::INET', lazy => 1,
 	default => sub {
 		my $self = shift;
+    $log->info('setting up listener on '.$self->listen.':'.$self->port.'...');
 		my $l = IO::Socket::INET->new(
 			Listen => $self->connection_queue_size,
 			LocalAddr => $self->listen,
@@ -91,6 +94,7 @@ sub accept_new_connections {
 		$conn->blocking(0);
 		$self->io_select->add( $conn );
 		$self->handle_new_connection( $conn );
+    $log->info('accepted new connection '.$conn->fileno.' from '.$conn->peerhost.':'.$conn->peerport);
 	}
 	return;
 }
@@ -124,13 +128,31 @@ sub read_events {
 	my @ready = $self->io_select->can_read(0);
 	foreach my $conn ( @ready )  {
 		if( $conn->eof ) {
-			$self->handle_cleanup_connection( $conn );
-			$self->io_select->remove( $conn );
-			$conn->close;
+      $log->info('connection '.$conn->fileno.' closed by peer');
+      $self->shutdown_connection( $conn );
 		}
-		push( @events, $self->handle_data($conn) );
+    eval {
+		  push( @events, $self->handle_data($conn) );
+    };
+    if( $@ ) {
+      $log->error('error reading from connection '.$conn->fileno.': '.$@);
+      $self->shutdown_connection( $conn );
+    }
 	}
 	return @events;
+}
+
+sub shutdown_connection {
+  my ( $self, $conn ) = @_;
+
+  $log->info('removing connection '.$conn->fileno.'...');
+  eval {
+    $self->handle_cleanup_connection( $conn );
+    $self->io_select->remove( $conn );
+    $conn->close;
+  };
+
+  return;
 }
 
 sub handle_cleanup_connection {

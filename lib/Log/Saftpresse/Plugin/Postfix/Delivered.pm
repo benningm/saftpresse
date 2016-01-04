@@ -55,12 +55,15 @@ sub process_to {
 	my $status = $stash->{'status'};
 	my $time = $stash->{'time'};
 
-	my $addr = $stash->{'to'};
-	$addr = $self->_get_addr_str( $addr );
+	my $addr = $stash->{'to'} = $self->_get_addr_str( $stash->{'to'} );
 	(my $domAddr = $addr) =~ s/^[^@]+\@//;	# get domain only
 
 	my $relay = $stash->{'relay'};
 	$relay = lc($relay) if( $self->ignore_case );
+
+  if( $self->extended && ( my $from = $notes->get('from-'.$qid) ) ) {
+    $stash->{'from'} = $from;
+  }
 
 	if($status eq 'sent') {
 		# was it actually forwarded, rather than delivered?
@@ -126,8 +129,7 @@ sub process_to {
 sub process_from {
 	my ( $self, $stash, $notes ) = @_;
 	my $qid = $stash->{'queue_id'};
-	my $addr = $stash->{'from'};
-	$addr = $self->_get_addr_str( $addr );
+	my $addr = $stash->{'from'} = $self->_get_addr_str( $stash->{'from'} );
 	my $size = $stash->{'size'};
 
 	return if( $notes->get('size-'.$qid) ); # avoid double-counting!

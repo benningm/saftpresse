@@ -7,6 +7,7 @@ use Moose;
 
 use Log::Saftpresse::Notes;
 use Log::Saftpresse::Counters;
+use Log::Saftpresse::Log4perl;
 
 extends 'Log::Saftpresse::PluginContainer';
 
@@ -33,8 +34,13 @@ sub process_event {
 	my ( $self, $stash ) = @_;
 	
 	foreach my $plugin ( @{$self->plugins} ) {
-		my $ret = $plugin->process(
-			$stash, $self->notes );
+    my $ret;
+    eval {
+  		$ret = $plugin->process( $stash, $self->notes );
+    };
+    if( $@ ) {
+      $log->error('plugin '.$plugin->name.' failed: '.$@);
+    }
 		if( defined $ret && $ret eq 'next') {
 			last;
 		}

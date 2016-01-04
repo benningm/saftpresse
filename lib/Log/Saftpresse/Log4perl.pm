@@ -35,15 +35,25 @@ sub init {
 			log4perl.appender.FileAppndr1.layout = $layout
 		});
 	} else {
+    my $appender = 'Log::Log4perl::Appender::ScreenColoredLevels';
+    my $colored = 1;
+    eval { require Log::Log4perl::Appender::ScreenColoredLevels; };
+    if( $@ ) {
+      $appender = 'Log::Log4perl::Appender::Screen';
+    }
 		Log::Log4perl->init(\ qq{
 			log4perl.rootLogger = $level, Screen
-			log4perl.appender.Screen = Log::Log4perl::Appender::Screen
+			log4perl.appender.Screen = $appender
 			log4perl.appender.Screen.stderr  = 0
 			log4perl.appender.Screen.layout = $layout
 		});
+    if( ! $colored ) {
+      $log->debug('disabled colored logging. (install Log::Log4perl::Appender::ScreenColoredLevels)');
+    }
 	}
 
 	$log = Log::Log4perl::get_logger;
+  $log->info('initialized logging with level '.$level);
 }
 
 sub level {

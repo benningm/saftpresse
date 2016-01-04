@@ -2,6 +2,8 @@ package Log::Saftpresse::Input::RELP;
 
 use Moose;
 
+use Log::Saftpresse::Log4perl;
+
 # ABSTRACT: RELP server input plugin for saftpresse
 # VERSION
 
@@ -86,6 +88,8 @@ sub cmd_open {
 	my ( $self, $conn, $frame ) = @_;
 	my $resp;
 
+  $log->debug('client announced: '.$frame->data);
+
 	if( $frame->data =~ /^relp_version=0/ ) {
 		$resp = Log::Saftpresse::Input::RELP::Frame->new_next_frame(
 			$frame,
@@ -105,6 +109,7 @@ sub cmd_open {
 				message => 'unsupported protocol version',
 			)->as_string,
 		);
+    $log->error('client uses unsupported RELP protocol version');
 	}
 
 	$conn->print( $resp->as_string );
@@ -116,6 +121,7 @@ sub cmd_close {
 	my ( $self, $conn, $frame ) = @_;
 	my $resp;
 
+  $log->info('peer '.$conn->peerhost.':'.$conn->peerport.' intialized connection shutdown');
 	$resp = Log::Saftpresse::Input::RELP::Frame->new_next_frame(
 		$frame,
 		command => 'rsp',
@@ -125,7 +131,7 @@ sub cmd_close {
 		)->as_string,
 	);
 	$conn->print( $resp->as_string );
-	$conn->close;
+	$self->shutdown_connection( $conn );
 
 	return;
 }
@@ -151,9 +157,7 @@ sub _read_frame {
 	my ( $self, $conn ) = @_;
 	my $frame;
 	
-	eval {
-		$frame = Log::Saftpresse::Input::RELP::Frame->new_from_fh($conn);
-	};
+	$frame = Log::Saftpresse::Input::RELP::Frame->new_from_fh($conn);
 
 	return( $frame );
 }
