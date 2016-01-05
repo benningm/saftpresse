@@ -9,7 +9,7 @@ sub process_queueid {
 	my ( $self, $stash ) = @_;
 	
 	if( my ( $queue_id, $msg ) = $stash->{'message'} =~
-			/^([A-Z0-9]{11}|[b-zB-Z0-9]{15}|NOQUEUE): (.+)$/) {
+			/^([A-Z0-9]{8,12}|[b-zB-Z0-9]{15}|NOQUEUE): (.+)$/) {
 		$stash->{'queue_id'} = $queue_id;
 		$stash->{'message'} = $msg;
 	}
