@@ -179,6 +179,7 @@ has 'verp_mung' => ( is => 'rw', isa => 'Int', default => 0 );
 has 'tls_stats' => ( is => 'rw', isa => 'Bool', default => 1 );
 
 with 'Log::Saftpresse::Plugin::Role::CounterUtils';
+with 'Log::Saftpresse::Plugin::Role::Tracking';
 
 with 'Log::Saftpresse::Plugin::Postfix::Service';
 with 'Log::Saftpresse::Plugin::Postfix::QueueID';
@@ -199,6 +200,9 @@ sub process {
 	if( ! defined $program || $program !~ /^postfix\// ) {
 		return;
 	}
+
+  $self->get_tracking_id('pid', $stash, $notes);
+
 	$self->process_service( $stash, $notes );
 	if( ! defined $stash->{'service'} ) {
 		return;

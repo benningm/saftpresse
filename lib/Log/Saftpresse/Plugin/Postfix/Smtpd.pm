@@ -28,6 +28,7 @@ sub process_smtpd {
 		$notes->set( 'client-'.$qid => gimme_domain($1) );
 	} elsif ( defined $pid && $message =~ /^connect from / ) {
 		$notes->set( 'pid-connect-'.$pid => $time );
+    $self->new_tracking_id($stash, $notes);
 	} elsif ( defined $pid &&
 	       		( my ($host) = $message =~ /^disconnect from (.+)$/) ) {
 		my $host = gimme_domain($host);
@@ -53,6 +54,8 @@ sub process_smtpd {
 
 		$self->incr_host_one( $stash, 'conn', 'total');
 		$self->incr_host( $stash, 'conn', 'busy', 'total', $sec);
+
+    $self->clear_tracking_id('pid', $stash, $notes);
 	} 
 
 	return;

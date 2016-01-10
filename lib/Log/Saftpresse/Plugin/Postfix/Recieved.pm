@@ -23,6 +23,12 @@ sub process_recieved {
 			$self->incr_per_time_one( $stash );
 		}
 		$notes->set('client-'.$qid => $host);
+    if( $message =~ /orig_queue_id=(.+?)(,|$)/) {
+      $stash->{'orig_queue_id'} = $1;
+      $self->get_tracking_id('queue_id', $stash, $notes, $1);
+      $self->set_tracking_id('pid', $stash, $notes);
+    }
+    $self->set_tracking_id('queue_id', $stash, $notes);
 	} elsif( $service eq 'pickup' &&
 			$message =~ /(sender|uid)=/ ) {
 		$self->incr_host_one( $stash, 'incoming', 'total');
@@ -30,6 +36,7 @@ sub process_recieved {
 			$self->incr_per_time_one( $stash );
 		}
 		$notes->set('client-'.$qid => 'pickup');
+    $self->set_tracking_id('queue_id', $stash, $notes);
 	}
 
 	return;

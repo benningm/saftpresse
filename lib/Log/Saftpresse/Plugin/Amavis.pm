@@ -73,7 +73,9 @@ If option test_stats is enabled:
 extends 'Log::Saftpresse::Plugin';
 
 with 'Log::Saftpresse::Plugin::Role::CounterUtils';
+with 'Log::Saftpresse::Plugin::Role::Tracking';
 
+use Log::Saftpresse::Log4perl;
 use JSON;
 
 has 'json' => (
@@ -84,7 +86,7 @@ has 'json' => (
 has 'test_stats' => ( is => 'ro', isa => 'Bool', default => 1 );
 
 sub process {
-	my ( $self, $stash ) = @_;
+	my ( $self, $stash, $notes ) = @_;
 	my $program = $stash->{'program'};
 	if( ! defined $program || $program ne 'amavis' ) {
 		return;
@@ -101,7 +103,10 @@ sub process {
 		eval {
 			$json_data = $self->json->decode( $stash->{'message'} );
 		};
-		if( $@ ) { return; }
+		if( $@ ) {
+      $log->warn('error while parsing amavis JSON log message: '.$@);
+      return;
+    }
 		if( ref($json_data) ne 'HASH' ) {
 			return;
 		}
@@ -111,6 +116,14 @@ sub process {
 	if( ! defined $stash->{'action'} ) {
 		return;
 	}
+
+  $self->get_tracking_id('queue_id', $stash, $notes);
+  if( defined $stash->{'queued_as'}
+      && ref($stash->{'queued_as'}) eq 'ARRAY' ) {
+    foreach my $queued_as_id ( @{$stash->{'queued_as'}} ) {
+      $self->set_tracking_id('queue_id', $stash, $notes, $queued_as_id);
+    }
+  }
 
 	$self->incr_host_one($stash, 'total' );
 	$self->count_fields_occur( $stash, 'content_type' );

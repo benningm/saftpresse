@@ -6,12 +6,13 @@ use Moose::Role;
 # VERSION
 
 sub process_queueid {
-	my ( $self, $stash ) = @_;
+	my ( $self, $stash, $notes ) = @_;
 	
 	if( my ( $queue_id, $msg ) = $stash->{'message'} =~
 			/^([A-Z0-9]{8,12}|[b-zB-Z0-9]{15}|NOQUEUE): (.+)$/) {
 		$stash->{'queue_id'} = $queue_id;
 		$stash->{'message'} = $msg;
+    $self->get_tracking_id('queue_id', $stash, $notes);
 	}
 
 	return;
