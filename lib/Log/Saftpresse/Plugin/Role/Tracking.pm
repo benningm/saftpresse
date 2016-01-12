@@ -2,6 +2,9 @@ package Log::Saftpresse::Plugin::Role::Tracking;
 
 use Moose::Role;
 
+# VERSION
+# ABSTRACT: role for plugins to implement transaction tracking
+
 use Log::Saftpresse::Log4perl;
 use UUID;
 
