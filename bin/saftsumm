@@ -11,9 +11,12 @@ use locale;
 use Getopt::Long;
 use Pod::Usage;
 
+use Log::Saftpresse::Log4perl;
 use Log::Saftpresse::Slurp;
 use Log::Saftpresse::Analyzer;
 use Log::Saftpresse::Constants;
+
+Log::Saftpresse::Log4perl->init( 'WARN' );
 
 our ( $progName, $usageMsg, %opts, $isoDateTime );
 ($progName = $0) =~ s/^.*\///;
