@@ -55,7 +55,13 @@ sub new_tracking_id {
   my ( $self, $stash, $notes ) = @_;
 
   if( defined $stash->{'pid'} ) {
-    my $id = UUID::uuid;
+    # rt.cpan.org #114390
+    # requires UUID >=0.06:
+    # my $id = UUID::uuid;
+    # this will work with UUID < 0.06:
+    my ( $uuid, $id );
+    UUID::generate( $uuid ); UUID::unparse( $uuid, $id );
+
     $stash->{'tracking_id'} = $id;
     $notes->set('tracking-pid-'.$stash->{'pid'}, $id);
     $log->debug('generated tracking_id for pid-'.$stash->{'pid'});
