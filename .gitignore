@@ -2,3 +2,5 @@
 Log-Saftpresse-*
 .*.swp
 saftpresse_*
+local
+cpanfile.snapshot
