@@ -13,6 +13,9 @@ use Log::Saftpresse::Slurp;
 use Log::Saftpresse::CounterOutputs;
 use Log::Saftpresse::Outputs;
 
+use Time::Piece;
+use Sys::Hostname;
+
 =head1 Description
 
 This is the central class of the saftpresse log analyzer.
@@ -140,6 +143,22 @@ sub _flushed_counters {
 	return;
 }
 
+sub saftpresse_version {
+  my $version = 'development';
+  eval '$version = $VERSION;'; ## no critic
+  return $version;
+}
+
+sub _startup_event {
+  my $self = shift;
+  my $version = $self->saftpresse_version;
+  return {
+    time => Time::Piece->new,
+    host => hostname(),
+    message => "saftpresse ($version) started",
+  };
+}
+
 =head2 run
 
 Run the main loop of saftpresse.
@@ -150,6 +169,8 @@ sub run {
 	my $self = shift;
 	my $slurp = $self->slurp;
 	my $last_flush = time;
+
+  $self->outputs->output( $self->_startup_event );
 
 	$log->info('entering main loop');
 	for(;;) { # main loop
