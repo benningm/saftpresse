@@ -42,6 +42,15 @@ Line based TCP server. (eg. for syslog)
 
 A TCP server implmenting the RELP protocol.
 
+=item L<Log::Saftpresse::Input::Redis>
+
+Will read events from a redis queue.
+
+=item L<Log::Saftpresse::Input::Lumberjack>
+
+A server implementing the lumberjack protocol v1/v2
+used by logstash and beats.
+
 =back
 
 =head2 Plugins
@@ -112,6 +121,10 @@ Write graphit events to an carbon line reciever.
 =item L<Log::Saftpresse::Output::JSON>
 
 Dump events in JSON format.
+
+=item L<Log::Saftpresse::Output::Redis>
+
+Write events to a redis queue.
 
 =back
 
