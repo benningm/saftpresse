@@ -51,6 +51,14 @@ Will read events from a redis queue.
 A server implementing the lumberjack protocol v1/v2
 used by logstash and beats.
 
+=item L<Log::Saftpresse::Input::Command>
+
+A input reading output of a command.
+
+=item L<Log::Saftpresse::Input::Journald>
+
+Read events from systemd journal.
+
 =back
 
 =head2 Plugins
