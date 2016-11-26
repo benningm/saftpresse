@@ -41,6 +41,7 @@ requires 'Net::Lumberjack';
 
 on 'test' => sub {
   requires 'Test::More';
+  requires 'Test::Pod';
   requires 'File::Find';
 };
 
