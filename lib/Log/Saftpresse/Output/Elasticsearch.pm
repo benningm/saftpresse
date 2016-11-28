@@ -65,7 +65,7 @@ has 'autoflush_size' => ( is => 'rw', isa => 'Int', default => 1000000 );
 has 'autoflush_time' => ( is => 'rw', isa => 'Int', default => 10 );
 
 has 'bulk' => (
-  is => 'ro', isa => 'Search::Elasticsearch::Bulk', lazy => 1,
+  is => 'ro', lazy => 1,
   default => sub {
     my $self = shift;
     return $self->es->bulk_helper(
