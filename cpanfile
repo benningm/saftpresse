@@ -37,7 +37,7 @@ requires 'strict';
 requires 'vars';
 requires 'warnings';
 requires 'Redis';
-requires 'Net::Lumberjack';
+requires 'Net::Lumberjack', '>=1.02';
 
 on 'test' => sub {
   requires 'Test::More';
