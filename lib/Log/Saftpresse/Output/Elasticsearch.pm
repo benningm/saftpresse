@@ -16,7 +16,23 @@ use File::Slurp;
 
 has 'nodes' => ( is => 'rw', isa => 'Str', default => 'localhost:9200' );
 has 'cxn_pool' => ( is => 'rw', isa => 'Str', default => 'Static' );
-has 'type' => ( is => 'rw', isa => 'Str', default => 'log' );
+
+has 'types' => ( is => 'rw', isa => 'Str', default => 'log,metricsets' );
+has '_types' => ( is => 'ro', isa => 'ArrayRef[Str]', lazy => 1,
+  default =>  sub {
+    my $self = shift;
+    return [ split(/\s*,\s*/, $self->types) ];
+  },
+);
+sub _is_handled_type {
+  my ( $self, $type ) = @_;
+  foreach my $i ( @{$self->_types} ) {
+    if( $i eq $type ) {
+      return 1;
+    }
+  }
+  return 0;
+}
 
 has 'indices_template' => (
 	is => 'rw', isa => 'Str', default => 'saftpresse-%Y-%m-%d' );
@@ -92,7 +108,7 @@ sub _es_install_template {
 }
 
 sub index_event {
-	my ( $self, $e ) = @_;
+	my ( $self, $type, $e ) = @_;
 
 	if( defined $e->{'time'} &&
 			ref($e->{'time'}) eq 'Time::Piece' ) {
@@ -101,7 +117,7 @@ sub index_event {
 	}
 	$self->bulk->index( {
 	    index  => $self->current_index,
-	    type   => $self->type,
+	    type   => $type,
 	    source => $e,
   } );
 
@@ -112,10 +128,14 @@ sub output {
 	my ( $self, @events ) = @_;
 
 	foreach my $event (@events) { 
-		if( defined $event->{'type'} && $event->{'type'} ne $self->type ) {
-			next;
-		}
-		$self->index_event( $event );
+    my $type = $event->{'type'};
+    if( ! defined $type ) {
+      $type = 'log';
+    } elsif( ! $self->is_handled_type( $type ) ) {
+      $log->info("ignoring event of type $type...");
+      next;
+    }
+		$self->index_event( $type, $event );
 	}
 
   if( $self->flush ) { $self->bulk->flush; }
